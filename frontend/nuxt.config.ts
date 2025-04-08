@@ -45,6 +45,7 @@ export default defineNuxtConfig({
   },
   css: [
     'primeicons/primeicons.css',
+    '~/assets/css/fonts.css',
     '~/assets/css/main.css',
     '~/assets/css/tailwind.css'
   ]

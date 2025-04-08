@@ -1,0 +1,15 @@
+@font-face {
+    font-family: 'Paratype Biform';
+    src: url('../fonts/Paratype-BiformRegular.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Paratype Biform';
+    src: url('../fonts/Paratype-BiformPixel.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+} 
