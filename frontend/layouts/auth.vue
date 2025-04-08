@@ -1,8 +1,6 @@
 <template>
-  <div class="padding-def font-paratype">
-    <Navbar />
+  <div>
     <slot />
-    <Footer />
   </div>
 </template>
 
