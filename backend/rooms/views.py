@@ -1,6 +1,7 @@
 from django.shortcuts import render
 from rest_framework import generics, status
 from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
 from .models import Room, CheckInInformation, Furniture
 from .serializers import (
     RoomSerializer, 
@@ -200,3 +201,29 @@ class FurnitureDeleteView(generics.DestroyAPIView):
         return Response({
             'message': 'Мебель успешно удалена'
         }, status=status.HTTP_200_OK)
+
+class UserCheckInInfoView(generics.RetrieveAPIView):
+    """
+    Получение информации о заселении текущего пользователя.
+    """
+    permission_classes = [IsAuthenticated]
+    serializer_class = CheckInInformationSerializer
+
+    @swagger_auto_schema(
+        operation_description="Получение информации о заселении текущего пользователя",
+        responses={
+            200: CheckInInformationSerializer,
+            404: "Информация о заселении не найдена"
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        user_email = request.user.email
+        check_in_info = CheckInInformation.get_user_info(user_email)
+        
+        if check_in_info:
+            serializer = self.get_serializer(check_in_info)
+            return Response(serializer.data)
+        return Response(
+            {'error': 'Информация о заселении не найдена'}, 
+            status=status.HTTP_404_NOT_FOUND
+        )

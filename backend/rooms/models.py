@@ -67,7 +67,7 @@ class CheckInInformation(models.Model):
     room = models.ForeignKey(
         Room,
         on_delete=models.CASCADE,
-        related_name='residents',
+        related_name='check_ins',
         verbose_name='Комната'
     )
     name = models.CharField(max_length=100, verbose_name='Имя')
@@ -85,13 +85,24 @@ class CheckInInformation(models.Model):
         validators=[MinValueValidator(1), MaxValueValidator(6)],
         verbose_name='Курс'
     )
+    email = models.EmailField(verbose_name='Email пользователя', unique=True)
+    check_in_date = models.DateTimeField(verbose_name='Дата заселения')
+    check_out_date = models.DateTimeField(verbose_name='Дата выселения')
 
     class Meta:
         verbose_name = 'Информация о заселении'
-        verbose_name_plural = 'Информация о заселениях'
+        verbose_name_plural = 'Информация о заселении'
 
     def __str__(self):
         return f"{self.surname} {self.name} {self.fathername}"
+
+    @classmethod
+    def get_user_info(cls, email):
+        """Получение информации о заселении по email пользователя"""
+        try:
+            return cls.objects.get(email=email)
+        except cls.DoesNotExist:
+            return None
 
     def save(self, *args, **kwargs):
         if not self.pk:  # Если это новый объект

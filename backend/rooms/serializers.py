@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import Room, CheckInInformation, Furniture
 from django.db import models
+from django.contrib.auth import get_user_model
 
 class FurnitureSerializer(serializers.ModelSerializer):
     class Meta:
@@ -23,45 +24,29 @@ class CheckInInformationSerializer(serializers.ModelSerializer):
     class Meta:
         model = CheckInInformation
         fields = [
-            'id', 'name', 'surname', 'fathername',
+            'id', 'room', 'name', 'surname', 'fathername',
             'phone_number', 'birth_date', 'university',
-            'faculty', 'course'
+            'faculty', 'course', 'email', 'check_in_date',
+            'check_out_date'
         ]
+        read_only_fields = ['id']
 
     def validate(self, attrs):
-        # Получаем все необходимые данные
-        course = attrs.get('course')
-        university = attrs.get('university')
-        gender = 'F' if attrs.get('gender') == 'female' else 'M'
+        # Проверяем, существует ли пользователь с таким email
+        User = get_user_model()
+        email = attrs.get('email')
+        
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise serializers.ValidationError(
+                {'email': 'Пользователь с таким email не найден'}
+            )
+        
+        return attrs
 
-        # Ищем подходящую комнату
-        suitable_rooms = Room.objects.filter(
-            gender=gender
-        ).exclude(occupied_seats__gte=models.F('seats'))
-
-        if not suitable_rooms.exists():
-            raise serializers.ValidationError("Нет подходящих комнат")
-
-        # Проверяем каждую комнату на соответствие критериям
-        for room in suitable_rooms:
-            residents = CheckInInformation.objects.filter(room=room)
-            if not residents.exists():
-                # Если комната пустая, она подходит
-                attrs['room'] = room
-                return attrs
-
-            # Проверяем курс и университет
-            is_suitable = True
-            for resident in residents:
-                if abs(resident.course - course) > 1:
-                    is_suitable = False
-                    break
-                if resident.university != university:
-                    is_suitable = False
-                    break
-
-            if is_suitable:
-                attrs['room'] = room
-                return attrs
-
-        raise serializers.ValidationError("Нет подходящих комнат по критериям") 
+    def validate_room(self, room):
+        # Проверяем, есть ли свободные места в комнате
+        if room.occupied_seats >= room.seats:
+            raise serializers.ValidationError("В комнате нет свободных мест")
+        return room 

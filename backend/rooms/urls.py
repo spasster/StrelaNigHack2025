@@ -7,7 +7,8 @@ from .views import (
     FurnitureCreateView,
     FurnitureListView,
     FurnitureMoveView,
-    FurnitureDeleteView
+    FurnitureDeleteView,
+    UserCheckInInfoView
 )
 
 urlpatterns = [
@@ -19,4 +20,5 @@ urlpatterns = [
     path('furniture/room/<int:room_id>/', FurnitureListView.as_view(), name='furniture-list'),
     path('furniture/<int:pk>/move/', FurnitureMoveView.as_view(), name='furniture-move'),
     path('furniture/<int:pk>/delete/', FurnitureDeleteView.as_view(), name='furniture-delete'),
+    path('my-check-in/', UserCheckInInfoView.as_view(), name='user-check-in-info'),
 ] 
