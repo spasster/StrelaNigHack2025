@@ -28,10 +28,9 @@ class UserLoginView(generics.GenericAPIView):
     serializer_class = UserLoginSerializer
 
     def post(self, request, *args, **kwargs):
-        print(f"Request data: {request.data}")  # Отладочная информация
+        print(f"Request data: {request.data}")
         serializer = self.get_serializer(data=request.data)
-        print(f"Serializer data: {serializer.initial_data}")  # Отладочная информация
-        # print(f"Serializer errors: {serializer.errors}")  # Отладочная информация
+        print(f"Serializer data: {serializer.initial_data}")
         if serializer.is_valid():
             user = serializer.validated_data['user']
             tokens = serializer.get_tokens(user)
