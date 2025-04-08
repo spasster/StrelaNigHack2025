@@ -4,6 +4,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.serializers import TokenRefreshSerializer
+from rooms.models import CheckInInformation
 
 User = get_user_model()
 
@@ -85,4 +86,11 @@ class CustomTokenRefreshSerializer(TokenRefreshSerializer):
     def validate(self, attrs):
         refresh = RefreshToken(attrs['refresh'])
         data = {'access': str(refresh.access_token)}
-        return data 
+        return data
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CheckInInformation
+        fields = ('name', 'surname', 'fathername', 'phone_number', 
+                 'birth_date', 'university', 'faculty', 'course', 
+                 'email', 'check_in_date', 'check_out_date', 'room') 

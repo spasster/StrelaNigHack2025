@@ -25,7 +25,7 @@ class User(AbstractUser):
     last_login = None
     is_staff = None
     is_superuser = None
-    is_active = None
+    is_active = models.BooleanField(default=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []

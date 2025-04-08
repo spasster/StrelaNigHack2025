@@ -2,12 +2,15 @@ from django.shortcuts import render
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework.permissions import IsAuthenticated
 from .serializers import (
     UserRegistrationSerializer, 
     CustomTokenObtainPairSerializer,
     UserLoginSerializer,
-    CustomTokenRefreshSerializer
+    CustomTokenRefreshSerializer,
+    UserProfileSerializer
 )
+from rooms.models import CheckInInformation
 
 # Create your views here.
 
@@ -48,3 +51,10 @@ class CustomTokenRefreshView(generics.GenericAPIView):
         if serializer.is_valid():
             return Response(serializer.validated_data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class UserProfileView(generics.RetrieveAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserProfileSerializer
+
+    def get_object(self):
+        return CheckInInformation.objects.get(email=self.request.user.email)
