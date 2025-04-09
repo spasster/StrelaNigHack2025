@@ -13,7 +13,11 @@ from .views import (
     OccupancyReportView,
     UniversityReportView,
     CheckInReportView,
-    ExportReportView
+    ExportReportView,
+    CheckInInformationWithoutRoomCreateView,
+    AllCheckInInformationListView,
+    CheckInInformationAssignView,
+    CheckInInformationUnassignView
 )
 
 urlpatterns = [
@@ -31,4 +35,8 @@ urlpatterns = [
     path('reports/university/', UniversityReportView.as_view(), name='university-report'),
     path('reports/checkin/', CheckInReportView.as_view(), name='checkin-report'),
     path('reports/export/', ExportReportView.as_view(), name='export-report'),
+    path('check-in/without-room/', CheckInInformationWithoutRoomCreateView.as_view(), name='check-in-without-room'),
+    path('check-in/all/', AllCheckInInformationListView.as_view(), name='all-check-ins'),
+    path('check-in/assign/', CheckInInformationAssignView.as_view(), name='check-in-assign'),
+    path('check-in/unassign/', CheckInInformationUnassignView.as_view(), name='check-in-unassign'),
 ] 

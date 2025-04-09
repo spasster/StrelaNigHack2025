@@ -9,7 +9,9 @@ from .serializers import (
     FurnitureSerializer,
     OccupancyReportSerializer,
     UniversityReportSerializer,
-    CheckInReportSerializer
+    CheckInReportSerializer,
+    CheckInInformationWithoutRoomSerializer,
+    CheckInInformationAssignSerializer
 )
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
@@ -449,3 +451,118 @@ class ExportReportView(generics.GenericAPIView):
         response['Content-Disposition'] = f'attachment; filename="{report_type}_report.xlsx"'
         
         return response
+
+class CheckInInformationWithoutRoomCreateView(generics.CreateAPIView):
+    """
+    Создание информации о заселении без привязки к комнате.
+    """
+    queryset = CheckInInformation.objects.all()
+    serializer_class = CheckInInformationWithoutRoomSerializer
+
+    @swagger_auto_schema(
+        operation_description="Создание информации о заселении без привязки к комнате",
+        request_body=CheckInInformationWithoutRoomSerializer,
+        responses={
+            201: CheckInInformationWithoutRoomSerializer,
+            400: "Неверные данные"
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            return Response({
+                'message': 'Информация о заселении успешно создана',
+                'data': serializer.data
+            }, status=status.HTTP_201_CREATED, headers=headers)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class AllCheckInInformationListView(generics.ListAPIView):
+    """
+    Получение списка всей информации о заселении.
+    """
+    queryset = CheckInInformation.objects.all()
+    serializer_class = CheckInInformationSerializer
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_description="Получение списка всей информации о заселении",
+        responses={200: CheckInInformationSerializer(many=True)}
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+class CheckInInformationAssignView(generics.GenericAPIView):
+    """
+    Привязка информации о заселении к комнате.
+    """
+    serializer_class = CheckInInformationAssignSerializer
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_description="Привязка информации о заселении к комнате",
+        request_body=CheckInInformationAssignSerializer,
+        responses={
+            200: "Успешное заселение",
+            400: "Неверные данные",
+            404: "Не найдено"
+        }
+    )
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            check_in = serializer.validated_data['check_in']
+            room = serializer.validated_data['room']
+            
+            check_in.room = room
+            check_in.save()
+            
+            room.occupied_seats += 1
+            room.save()
+            
+            return Response({
+                'message': 'Студент успешно заселен в комнату',
+                'data': CheckInInformationSerializer(check_in).data
+            })
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class CheckInInformationUnassignView(generics.GenericAPIView):
+    """
+    Удаление информации о заселении из комнаты.
+    """
+    serializer_class = CheckInInformationAssignSerializer
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_description="Удаление информации о заселении из комнаты",
+        request_body=CheckInInformationAssignSerializer,
+        responses={
+            200: "Успешное выселение",
+            400: "Неверные данные",
+            404: "Не найдено"
+        }
+    )
+    def post(self, request):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            check_in = serializer.validated_data['check_in']
+            room = serializer.validated_data['room']
+            
+            if check_in.room != room:
+                return Response(
+                    {'error': 'Студент не заселен в указанную комнату'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            check_in.room = None
+            check_in.save()
+            
+            room.occupied_seats -= 1
+            room.save()
+            
+            return Response({
+                'message': 'Студент успешно выселен из комнаты',
+                'data': CheckInInformationSerializer(check_in).data
+            })
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
