@@ -10,7 +10,6 @@ from .serializers import (
     OccupancyReportSerializer,
     UniversityReportSerializer,
     CheckInReportSerializer,
-    CheckInInformationWithoutRoomSerializer,
     CheckInInformationWithoutRoomAndEmailSerializer,
     CheckInInformationAssignSerializer
 )
@@ -84,6 +83,7 @@ class CheckInInformationCreateView(generics.CreateAPIView):
     """
     queryset = CheckInInformation.objects.all()
     serializer_class = CheckInInformationSerializer
+    permission_classes = [IsAuthenticated]
 
     @swagger_auto_schema(
         operation_description="Создание информации о заселении",
@@ -94,7 +94,13 @@ class CheckInInformationCreateView(generics.CreateAPIView):
         }
     )
     def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
+        data = request.data.copy()
+        
+        # Если email не указан, берем из токена
+        if 'email' not in data and request.user.is_authenticated:
+            data['email'] = request.user.email
+            
+        serializer = self.get_serializer(data=data)
         if serializer.is_valid():
             self.perform_create(serializer)
             headers = self.get_success_headers(serializer.data)
@@ -452,32 +458,6 @@ class ExportReportView(generics.GenericAPIView):
         response['Content-Disposition'] = f'attachment; filename="{report_type}_report.xlsx"'
         
         return response
-
-class CheckInInformationWithoutRoomCreateView(generics.CreateAPIView):
-    """
-    Создание информации о заселении без привязки к комнате.
-    """
-    queryset = CheckInInformation.objects.all()
-    serializer_class = CheckInInformationWithoutRoomSerializer
-
-    @swagger_auto_schema(
-        operation_description="Создание информации о заселении без привязки к комнате",
-        request_body=CheckInInformationWithoutRoomSerializer,
-        responses={
-            201: CheckInInformationWithoutRoomSerializer,
-            400: "Неверные данные"
-        }
-    )
-    def create(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        if serializer.is_valid():
-            self.perform_create(serializer)
-            headers = self.get_success_headers(serializer.data)
-            return Response({
-                'message': 'Информация о заселении успешно создана',
-                'data': serializer.data
-            }, status=status.HTTP_201_CREATED, headers=headers)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class AllCheckInInformationListView(generics.ListAPIView):
     """

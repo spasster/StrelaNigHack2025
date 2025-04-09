@@ -77,6 +77,7 @@ INSTALLED_APPS = [
     'report',
     'corsheaders',
     'drf_yasg',
+    'appeal',
 ]
 
 MIDDLEWARE = [

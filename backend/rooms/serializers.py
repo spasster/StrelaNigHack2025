@@ -27,6 +27,12 @@ class CheckInInformationSerializer(serializers.ModelSerializer):
                 {'email': 'Пользователь с таким email не найден'}
             )
         
+        # Проверяем наличие комнаты
+        if 'room' not in attrs:
+            raise serializers.ValidationError(
+                {'room': 'Поле room является обязательным'}
+            )
+        
         return attrs
 
     def validate_room(self, room):
@@ -78,30 +84,38 @@ class CheckInReportSerializer(serializers.Serializer):
     average_stay_duration = serializers.FloatField()
     students_by_duration = serializers.DictField()
 
-class CheckInInformationWithoutRoomSerializer(serializers.ModelSerializer):
+class CheckInInformationWithoutRoomAndEmailSerializer(serializers.ModelSerializer):
+    room = serializers.PrimaryKeyRelatedField(queryset=Room.objects.all(), required=True)
+    
     class Meta:
         model = CheckInInformation
         fields = [
-            'id', 'name', 'surname', 'fathername',
+            'id', 'room', 'name', 'surname', 'fathername',
             'phone_number', 'birth_date', 'university',
-            'faculty', 'course', 'email', 'check_in_date',
+            'faculty', 'course', 'check_in_date',
             'check_out_date'
         ]
         read_only_fields = ['id']
 
     def validate(self, attrs):
-        # Проверяем, существует ли пользователь с таким email
-        User = get_user_model()
-        email = attrs.get('email')
-        
-        try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
+        # Проверяем, что пользователь аутентифицирован
+        if not self.context['request'].user.is_authenticated:
             raise serializers.ValidationError(
-                {'email': 'Пользователь с таким email не найден'}
+                {'error': 'Пользователь не аутентифицирован'}
+            )
+        
+        # Проверяем наличие комнаты
+        if 'room' not in attrs:
+            raise serializers.ValidationError(
+                {'room': 'Поле room является обязательным'}
             )
         
         return attrs
+
+    def create(self, validated_data):
+        # Добавляем email из токена
+        validated_data['email'] = self.context['request'].user.email
+        return super().create(validated_data)
 
 class CheckInInformationAssignSerializer(serializers.Serializer):
     check_in_id = serializers.IntegerField()
@@ -133,28 +147,4 @@ class CheckInInformationAssignSerializer(serializers.Serializer):
         except Room.DoesNotExist:
             raise serializers.ValidationError(
                 {'error': 'Комната не найдена'}
-            )
-
-class CheckInInformationWithoutRoomAndEmailSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = CheckInInformation
-        fields = [
-            'id', 'name', 'surname', 'fathername',
-            'phone_number', 'birth_date', 'university',
-            'faculty', 'course', 'check_in_date',
-            'check_out_date'
-        ]
-        read_only_fields = ['id']
-
-    def validate(self, attrs):
-        # Проверяем, что пользователь аутентифицирован
-        if not self.context['request'].user.is_authenticated:
-            raise serializers.ValidationError(
-                {'error': 'Пользователь не аутентифицирован'}
-            )
-        return attrs
-
-    def create(self, validated_data):
-        # Добавляем email из токена
-        validated_data['email'] = self.context['request'].user.email
-        return super().create(validated_data) 
+            ) 
