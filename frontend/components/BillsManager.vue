@@ -1,5 +1,11 @@
 <!-- components/BillsManager.vue -->
 <script setup>
+import { ref, onMounted } from 'vue'
+import { useFetch } from '~/composables/useFetch'
+import { useToast } from 'primevue/usetoast'
+
+const toast = useToast()
+const { fetchWithAuth } = useFetch()
 const filters = ref({
   global: { value: null, matchMode: 'contains' }
 })
@@ -30,14 +36,17 @@ const paymentForm = ref({
 const loadBills = async () => {
   loading.value = true
   try {
-    const response = await fetch('/api/bills/', {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-      }
-    })
-    bills.value = await response.json()
+    const response = await fetchWithAuth('/api/bills/bills/')
+    const data = await response.json()
+    bills.value = data
   } catch (error) {
     console.error('Ошибка при загрузке счетов:', error)
+    toast.add({
+      severity: 'error',
+      summary: 'Ошибка',
+      detail: 'Не удалось загрузить список счетов',
+      life: 3000
+    })
   } finally {
     loading.value = false
   }
@@ -59,29 +68,82 @@ const openBillDialog = (bill = null) => {
 }
 
 const saveBill = async () => {
+  // Проверяем заполнение обязательных полей
+  if (!billForm.value.resident) {
+    toast.add({
+      severity: 'error',
+      summary: 'Ошибка',
+      detail: 'Укажите жильца',
+      life: 3000
+    })
+    return
+  }
+
+  if (!billForm.value.amount || billForm.value.amount <= 0) {
+    toast.add({
+      severity: 'error',
+      summary: 'Ошибка',
+      detail: 'Укажите корректную сумму',
+      life: 3000
+    })
+    return
+  }
+
+  if (!billForm.value.due_date) {
+    toast.add({
+      severity: 'error',
+      summary: 'Ошибка',
+      detail: 'Укажите срок оплаты',
+      life: 3000
+    })
+    return
+  }
+
   try {
     const url = editingBill.value 
-      ? `/api/bills/${editingBill.value.id}/` 
-      : '/api/bills/'
+      ? `/api/bills/bills/${editingBill.value}/` 
+      : '/api/bills/bills/'
     const method = editingBill.value ? 'PUT' : 'POST'
     
-    const response = await fetch(url, {
+    const response = await fetchWithAuth(url, {
       method,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-      },
-      body: JSON.stringify(billForm.value)
+      body: JSON.stringify({
+        resident: billForm.value.resident,
+        amount: billForm.value.amount,
+        bill_type: billForm.value.bill_type,
+        due_date: formatDate(billForm.value.due_date)
+      })
     })
     
     if (response.ok) {
-      toast.add({ severity: 'success', summary: 'Успех', detail: 'Счет сохранен', life: 3000 })
+      toast.add({ 
+        severity: 'success', 
+        summary: 'Успех', 
+        detail: 'Счет сохранен', 
+        life: 3000 
+      })
       closeBillDialog()
       loadBills()
+    } else {
+      const errorData = await response.json()
+      throw new Error(errorData.detail || 'Ошибка при сохранении счета')
     }
   } catch (error) {
     console.error('Ошибка при сохранении счета:', error)
+    toast.add({
+      severity: 'error',
+      summary: 'Ошибка',
+      detail: error.message || 'Не удалось сохранить счет',
+      life: 3000
+    })
   }
+}
+
+// Добавляем функцию форматирования даты
+const formatDate = (date) => {
+  if (!date) return null
+  const d = new Date(date)
+  return d.toISOString().split('T')[0]
 }
 
 const closeBillDialog = () => {
@@ -96,6 +158,16 @@ const closeBillDialog = () => {
 }
 
 const openPaymentDialog = (bill) => {
+  if (!bill || !bill.id) {
+    toast.add({
+      severity: 'error',
+      summary: 'Ошибка',
+      detail: 'Неверные данные счета',
+      life: 3000
+    })
+    return
+  }
+
   selectedBill.value = bill
   paymentForm.value = {
     bill: bill.id,
@@ -108,22 +180,49 @@ const openPaymentDialog = (bill) => {
 }
 
 const createPayment = async () => {
-  try {
-    const response = await fetch('/api/bills/payments/', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(paymentForm.value)
+  if (!paymentForm.value.bill) {
+    toast.add({
+      severity: 'error',
+      summary: 'Ошибка',
+      detail: 'ID счета не указан',
+      life: 3000
     })
+    return
+  }
+
+  try {
+    const response = await fetchWithAuth('/api/bills/payments/', {
+      method: 'POST',
+      body: JSON.stringify({
+        bill: paymentForm.value.bill,
+        amount: paymentForm.value.amount,
+        payment_method: paymentForm.value.payment_method,
+        transaction_id: paymentForm.value.transaction_id,
+        status: paymentForm.value.status
+      })
+    })
+    
     if (response.ok) {
-      toast.add({ severity: 'success', summary: 'Успех', detail: 'Платеж создан', life: 3000 })
+      toast.add({ 
+        severity: 'success', 
+        summary: 'Успех', 
+        detail: 'Платеж создан', 
+        life: 3000 
+      })
       closePaymentDialog()
       loadBills()
+    } else {
+      const errorData = await response.json()
+      throw new Error(errorData.detail || 'Ошибка при создании платежа')
     }
   } catch (error) {
     console.error('Ошибка при создании платежа:', error)
+    toast.add({
+      severity: 'error',
+      summary: 'Ошибка',
+      detail: error.message || 'Не удалось создать платеж',
+      life: 3000
+    })
   }
 }
 
@@ -136,6 +235,44 @@ const closePaymentDialog = () => {
     payment_method: 'CARD',
     transaction_id: '',
     status: 'SUCCESS'
+  }
+}
+
+const deleteBill = async (id) => {
+  if (!id) {
+    toast.add({
+      severity: 'error',
+      summary: 'Ошибка',
+      detail: 'ID счета не указан',
+      life: 3000
+    })
+    return
+  }
+
+  try {
+    const response = await fetchWithAuth(`/api/bills/bills/${id}/`, {
+      method: 'DELETE'
+    })
+    
+    if (response.ok) {
+      toast.add({ 
+        severity: 'success', 
+        summary: 'Успех', 
+        detail: 'Счет удален', 
+        life: 3000 
+      })
+      loadBills()
+    } else {
+      throw new Error('Ошибка при удалении счета')
+    }
+  } catch (error) {
+    console.error('Ошибка при удалении счета:', error)
+    toast.add({
+      severity: 'error',
+      summary: 'Ошибка',
+      detail: 'Не удалось удалить счет',
+      life: 3000
+    })
   }
 }
 
@@ -234,7 +371,7 @@ onMounted(() => {
             />
             <Button 
               icon="pi pi-trash" 
-              @click="deleteBill(data.id)" 
+              @click="() => deleteBill(data.id)" 
               severity="danger"
               text
             />

@@ -133,8 +133,8 @@
           <div class="flex justify-between items-center mb-4">
             <h3 class="text-lg font-semibold text-white/85">Мебель</h3>
             <div class="flex gap-2">
-              <InputText v-model="newFurniture.type" placeholder="Тип мебели" class="w-40" />
-              <InputNumber v-model="newFurniture.count" :min="1" :max="10" placeholder="Кол-во" class="w-24" />
+              <InputText v-model="furnitureForm.type" placeholder="Тип мебели" class="w-40" />
+              <InputNumber v-model="furnitureForm.count" :min="1" :max="10" placeholder="Кол-во" class="w-24" />
               <Button label="Добавить" icon="pi pi-plus" class="p-button-primary" @click="addFurniture" />
             </div>
           </div>
@@ -144,6 +144,14 @@
                      v-model:filters="furnitureFilters"
                      :loading="furnitureLoading"
                      loadingIcon="pi pi-spinner pi-spin">
+            <template #header>
+              <div class="flex justify-end">
+                <span class="p-input-icon-left">
+                  <i class="pi pi-search ml-2" />
+                  <InputText v-model="furnitureFilters['global'].value" placeholder="Поиск..." class="ml-4" />
+                </span>
+              </div>
+            </template>
             <template #empty>
               <div class="flex flex-col items-center justify-center p-4">
                 <i class="pi pi-inbox text-4xl text-white/50 mb-2"></i>
@@ -180,7 +188,10 @@ const showCreateRoomDialog = ref(false)
 const showRoomDetailsDialog = ref(false)
 const selectedRoom = ref(null)
 const editingRoom = ref(null)
-const newFurniture = ref({ type: '', count: 1 })
+const furnitureForm = ref({
+  type: '',
+  count: 1
+})
 const loading = ref(false)
 const furnitureLoading = ref(false)
 
@@ -223,20 +234,56 @@ const saveRoom = async () => {
       ? `/api/rooms/${editingRoom.value.id}/` 
       : '/api/rooms/create/'
     const method = editingRoom.value ? 'PUT' : 'POST'
-    
-    const response = await fetch(url, {
+
+    // Сначала сохраняем комнату
+    const roomResponse = await fetch(url, {
       method,
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(roomForm.value)
+      body: JSON.stringify({
+        number: roomForm.value.number,
+        seats: roomForm.value.seats,
+        gender: roomForm.value.gender
+      })
     })
-    
-    if (response.ok) {
-      toast.add({ severity: 'success', summary: 'Успех', detail: 'Комната сохранена', life: 3000 })
-      closeRoomDialog()
-      loadRooms()
+
+    if (!roomResponse.ok) {
+      throw new Error('Ошибка при сохранении комнаты')
     }
+
+    const roomData = await roomResponse.json()
+
+    // Затем сохраняем мебель
+    if (furnitureForm.value.count > 0) {
+      const furniturePromises = Array.from({ length: furnitureForm.value.count }, () => 
+        fetch('/api/rooms/furniture/create/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: furnitureForm.value.type,
+            room: roomData.id
+          })
+        })
+      )
+
+      await Promise.all(furniturePromises)
+    }
+
+    toast.add({
+      severity: 'success',
+      summary: 'Успешно',
+      detail: 'Комната сохранена',
+      life: 3000
+    })
+    closeRoomDialog()
+    loadRooms()
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Ошибка', detail: 'Не удалось сохранить комнату', life: 3000 })
+    console.error('Ошибка при сохранении комнаты:', error)
+    toast.add({
+      severity: 'error',
+      summary: 'Ошибка',
+      detail: 'Не удалось сохранить комнату',
+      life: 3000
+    })
   }
 }
 
@@ -261,29 +308,68 @@ const deleteRoom = async (room) => {
 
 // Управление мебелью
 const addFurniture = async () => {
-  if (!newFurniture.value.type) return
-  
+  if (!selectedRoom.value) return
+
+  if (!furnitureForm.value.type || !furnitureForm.value.count) {
+    toast.add({
+      severity: 'error',
+      summary: 'Ошибка',
+      detail: 'Заполните все поля',
+      life: 3000
+    })
+    return
+  }
+
   try {
-    for (let i = 0; i < newFurniture.value.count; i++) {
-      const response = await fetch('/api/rooms/furniture/create/', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: newFurniture.value.type,
-          room: selectedRoom.value.id
-        })
+    const response = await fetch('/api/rooms/furniture/create/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        type: furnitureForm.value.type,
+        count: furnitureForm.value.count,
+        condition: 'good',
+        room: selectedRoom.value.id
       })
-      
-      if (!response.ok) {
-        throw new Error('Ошибка при добавлении мебели')
-      }
+    })
+
+    if (!response.ok) {
+      throw new Error('Ошибка при сохранении мебели')
+    }
+
+    const result = await response.json()
+    
+    if (!selectedRoom.value.furniture) {
+      selectedRoom.value.furniture = []
     }
     
-    toast.add({ severity: 'success', summary: 'Успех', detail: 'Мебель добавлена', life: 3000 })
-    newFurniture.value = { type: '', count: 1 }
-    loadRoomDetails(selectedRoom.value.id)
+    // Добавляем новую мебель в список
+    selectedRoom.value.furniture.push({
+      id: result.data.id,
+      type: result.data.type,
+      count: furnitureForm.value.count,
+      condition: 'good'
+    })
+    
+    // Очищаем форму
+    furnitureForm.value = {
+      type: '',
+      count: 1
+    }
+
+    toast.add({
+      severity: 'success',
+      summary: 'Успешно',
+      detail: result.message,
+      life: 3000
+    })
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Ошибка', detail: 'Не удалось добавить мебель', life: 3000 })
+    console.error('Ошибка при добавлении мебели:', error)
+    toast.add({
+      severity: 'error',
+      summary: 'Ошибка',
+      detail: 'Не удалось добавить мебель',
+      life: 3000
+    })
   }
 }
 

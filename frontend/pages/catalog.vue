@@ -51,7 +51,11 @@
             <p class="text-white">Тип: {{ getRoomTypeName(selectedRoom.type) }}</p>
             <p class="text-white">Цена: {{ selectedRoom.price }} ₽/сутки</p>
           </div>
-          <CustomButton class="w-full mt-3" @click="handleBooking">
+          <CustomButton 
+            v-if="selectedRoom.status === 'free'"
+            class="w-full mt-3" 
+            @click="bookingDialogRef?.showDialog()"
+          >
             Забронировать
           </CustomButton>
         </div>
@@ -82,20 +86,18 @@
         <div class="relative" :style="{ height: 'calc(100vh - 200px)' }">
           <ClientOnly>
             <v-stage 
+              ref="stageRef"
               :config="{
-                ...stageConfig,
-                scale: {
-                  x: stageConfig.transform.scale,
-                  y: stageConfig.transform.scale
-                },
+                width: stageConfig.width,
+                height: stageConfig.height,
+                draggable: true,
+                scaleX: stageConfig.transform.scale,
+                scaleY: stageConfig.transform.scale,
                 x: stageConfig.transform.x,
                 y: stageConfig.transform.y
               }" 
               class="bg-custom-card rounded-lg p-4 touch-manipulation"
               @wheel="handleZoom"
-              @touchstart="handleTouchStart"
-              @touchmove="handleTouchMove"
-              @touchend="handleTouchEnd"
             >
               <v-layer>
                 <!-- Фон здания -->
@@ -377,57 +379,53 @@
                 />
                 
                 <!-- Номера -->
-                <v-rect
-                  v-for="room in currentFloorRooms"
-                  :key="room.number"
-                  :config="{
-                    x: room.x,
-                    y: room.y,
-                    width: LAYOUT.ROOM_WIDTH,
-                    height: LAYOUT.ROOM_HEIGHT,
-                    fill: room.fill,
-                    stroke: '#4a5568',
-                    strokeWidth: 2,
-                    cornerRadius: 4,
-                  }"
-                  @click="handleRoomClick(room)"
-                  @mouseover="handleRoomHover(room)"
-                  @mouseout="handleRoomHoverOut(room)"
-                />
-                
-                <!-- Номера комнат -->
-                <v-text
-                  v-for="room in currentFloorRooms"
-                  :key="'text-' + room.number"
-                  :config="{
-                    x: room.x + LAYOUT.ROOM_WIDTH / 2 - 15,
-                    y: room.y + LAYOUT.ROOM_HEIGHT / 2 - 10,
-                    text: room.number,
-                    fontSize: 18,
-                    fill: '#2d3748',
-                    fontStyle: 'bold',
-                  }"
-                />
+                <template v-for="room in currentFloorRooms" :key="room.number">
+                  <v-group>
+                    <v-rect
+                      :config="{
+                        x: room.x,
+                        y: room.y,
+                        width: LAYOUT.ROOM_WIDTH,
+                        height: LAYOUT.ROOM_HEIGHT,
+                        fill: room.fill,
+                        stroke: '#4a5568',
+                        strokeWidth: 2,
+                        cornerRadius: 4,
+                      }"
+                      @click="handleRoomClick(room)"
+                      @mouseover="handleRoomHover(room)"
+                      @mouseout="handleRoomHoverOut(room)"
+                    />
+                    
+                    <v-text
+                      :config="{
+                        x: room.x + LAYOUT.ROOM_WIDTH / 2 - 15,
+                        y: room.y + LAYOUT.ROOM_HEIGHT / 2 - 10,
+                        text: room.number,
+                        fontSize: 18,
+                        fill: '#2d3748',
+                        fontStyle: 'bold',
+                      }"
+                    />
 
-                <!-- Статус комнат -->
-                <v-text
-                  v-for="room in currentFloorRooms"
-                  :key="'status-' + room.number"
-                  :config="{
-                    x: room.x + 5,
-                    y: room.y + 5,
-                    text: getStatusText(room.status),
-                    fontSize: 12,
-                    fill: '#2d3748',
-                  }"
-                />
+                    <v-text
+                      :config="{
+                        x: room.x + 5,
+                        y: room.y + 5,
+                        text: getStatusText(room.status),
+                        fontSize: 12,
+                        fill: '#2d3748',
+                      }"
+                    />
+                  </v-group>
+                </template>
 
                 <!-- Входы/выходы (только на первом этаже) -->
                 <template v-if="currentFloor === 1">
                   <!-- Вход между верхними номерами -->
                   <v-rect
                     :config="{
-                      x: LAYOUT.MARGIN + LAYOUT.SERVICE_ROOM_WIDTH + LAYOUT.MARGIN + corridorWidth / 2 - LAYOUT.ENTRANCE_WIDTH / 2 - 35,
+                      x: LAYOUT.MARGIN + LAYOUT.SERVICE_ROOM_WIDTH + LAYOUT.MARGIN + corridorWidth / 2 - LAYOUT.ENTRANCE_WIDTH - 35,
                       y: LAYOUT.MARGIN + LAYOUT.ROOM_HEIGHT / 2 - LAYOUT.ENTRANCE_HEIGHT / 2,
                       width: LAYOUT.ENTRANCE_WIDTH,
                       height: LAYOUT.ENTRANCE_HEIGHT,
@@ -438,7 +436,7 @@
                   />
                   <v-text
                     :config="{
-                      x: LAYOUT.MARGIN + LAYOUT.SERVICE_ROOM_WIDTH + LAYOUT.MARGIN + corridorWidth / 2 - LAYOUT.ENTRANCE_WIDTH / 2 + 5 - 35,
+                      x: LAYOUT.MARGIN + LAYOUT.SERVICE_ROOM_WIDTH + LAYOUT.MARGIN + corridorWidth / 2 - LAYOUT.ENTRANCE_WIDTH + 5 - 35,
                       y: LAYOUT.MARGIN + LAYOUT.ROOM_HEIGHT / 2 - 5,
                       text: 'Вход',
                       fontSize: 12,
@@ -447,11 +445,11 @@
                     }"
                   />
 
-                  <!-- Выход между нижними номерами -->
+                  <!-- Выход между верхними номерами -->
                   <v-rect
                     :config="{
-                      x: LAYOUT.MARGIN + LAYOUT.SERVICE_ROOM_WIDTH + LAYOUT.MARGIN + corridorWidth / 2 - LAYOUT.ENTRANCE_WIDTH / 2 - 35,
-                      y: LAYOUT.MARGIN + LAYOUT.ROOM_HEIGHT + LAYOUT.MARGIN * 2 + LAYOUT.CORRIDOR_WIDTH + LAYOUT.ROOM_HEIGHT / 2 - LAYOUT.ENTRANCE_HEIGHT / 2,
+                      x: LAYOUT.MARGIN + LAYOUT.SERVICE_ROOM_WIDTH + LAYOUT.MARGIN + corridorWidth / 2 + 35,
+                      y: LAYOUT.MARGIN + LAYOUT.ROOM_HEIGHT / 2 - LAYOUT.ENTRANCE_HEIGHT / 2,
                       width: LAYOUT.ENTRANCE_WIDTH,
                       height: LAYOUT.ENTRANCE_HEIGHT,
                       fill: '#4a5568',
@@ -461,8 +459,8 @@
                   />
                   <v-text
                     :config="{
-                      x: LAYOUT.MARGIN + LAYOUT.SERVICE_ROOM_WIDTH + LAYOUT.MARGIN + corridorWidth / 2 - LAYOUT.ENTRANCE_WIDTH / 2 + 5 - 35,
-                      y: LAYOUT.MARGIN + LAYOUT.ROOM_HEIGHT + LAYOUT.MARGIN * 2 + LAYOUT.CORRIDOR_WIDTH + LAYOUT.ROOM_HEIGHT / 2 - 5,
+                      x: LAYOUT.MARGIN + LAYOUT.SERVICE_ROOM_WIDTH + LAYOUT.MARGIN + corridorWidth / 2 + 40,
+                      y: LAYOUT.MARGIN + LAYOUT.ROOM_HEIGHT / 2 - 5,
                       text: 'Выход',
                       fontSize: 12,
                       fill: '#fff',
@@ -476,11 +474,17 @@
         </div>
       </div>
     </div>
+    <BookingDialog
+      ref="bookingDialogRef"
+      :room-id="selectedRoom?.id || 0"
+      @success="() => loadRooms()"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { useToast } from 'primevue/usetoast';
+import BookingDialog from '~/components/BookingDialog.vue';
 
 // Типы для интеграции с бэкендом
 interface Room {
@@ -497,6 +501,9 @@ interface Room {
   description: string;
   amenities: string[];
   images: string[];
+  seats: number;
+  occupied_seats: number;
+  gender: 'M' | 'F';
 }
 
 type RoomType = 'standard' | 'luxury' | 'suite';
@@ -505,8 +512,8 @@ type RoomStatus = 'free' | 'booked' | 'selected' | 'maintenance';
 const toast = useToast();
 
 const stageConfig = reactive({
-  width: 1400,
-  height: 900,
+  width: 1000,
+  height: 1500,
   scale: 1,
   draggable: true,
   lastTouchX: 0,
@@ -519,7 +526,6 @@ const stageConfig = reactive({
     x: 0,
     y: 0
   },
-  // Добавляем новые параметры для мобильного масштабирования
   minScale: 0.3,
   maxScale: 5,
   scaleStep: 1.1,
@@ -532,21 +538,21 @@ const selectedRoom = ref<Room | null>(null);
 
 // Константы для планировки
 const LAYOUT = {
-  ROOM_WIDTH: 120,
-  ROOM_HEIGHT: 100,
-  CORRIDOR_WIDTH: 120,
-  SERVICE_ROOM_WIDTH: 100,
-  SERVICE_ROOM_HEIGHT: 100,
-  COOLER_WIDTH: 60,
-  COOLER_HEIGHT: 60,
-  MARGIN: 40,
-  FLOOR_HEIGHT: 800,
+  ROOM_WIDTH: 100,
+  ROOM_HEIGHT: 80,
+  CORRIDOR_WIDTH: 100,
+  SERVICE_ROOM_WIDTH: 80,
+  SERVICE_ROOM_HEIGHT: 80,
+  COOLER_WIDTH: 50,
+  COOLER_HEIGHT: 50,
+  MARGIN: 30,
+  FLOOR_HEIGHT: 250,
   ROOMS_PER_SIDE: 3,
   ROOMS_PER_FLOOR: 12,
-  SERVICE_ROOMS_SPACING: 60,
-  ROOM_SPACING: 30,
-  ENTRANCE_WIDTH: 80,
-  ENTRANCE_HEIGHT: 30,
+  SERVICE_ROOMS_SPACING: 80,
+  ROOM_SPACING: 15,
+  ENTRANCE_WIDTH: 60,
+  ENTRANCE_HEIGHT: 25,
 };
 
 // Вычисляем ширину коридора
@@ -582,6 +588,9 @@ const createFloorRooms = (floor: number): Room[] => {
       description: `${type === 'luxury' ? 'Люксовый' : type === 'suite' ? 'Сьют' : 'Стандартный'} номер`,
       amenities: ['Wi-Fi', 'TV', 'Кондиционер', type === 'luxury' ? 'Мини-бар' : type === 'suite' ? 'Джакузи' : ''],
       images: [],
+      seats: type === 'luxury' ? 4 : type === 'suite' ? 4 : 2,
+      occupied_seats: status === 'booked' ? 2 : 0,
+      gender: Math.random() > 0.5 ? 'M' : 'F'
     });
   }
 
@@ -605,6 +614,9 @@ const createFloorRooms = (floor: number): Room[] => {
       description: `${type === 'luxury' ? 'Люксовый' : type === 'suite' ? 'Сьют' : 'Стандартный'} номер`,
       amenities: ['Wi-Fi', 'TV', 'Кондиционер', type === 'luxury' ? 'Мини-бар' : type === 'suite' ? 'Джакузи' : ''],
       images: [],
+      seats: type === 'luxury' ? 4 : type === 'suite' ? 4 : 2,
+      occupied_seats: status === 'booked' ? 2 : 0,
+      gender: Math.random() > 0.5 ? 'M' : 'F'
     });
   }
 
@@ -628,6 +640,9 @@ const createFloorRooms = (floor: number): Room[] => {
       description: `${type === 'luxury' ? 'Люксовый' : type === 'suite' ? 'Сьют' : 'Стандартный'} номер`,
       amenities: ['Wi-Fi', 'TV', 'Кондиционер', type === 'luxury' ? 'Мини-бар' : type === 'suite' ? 'Джакузи' : ''],
       images: [],
+      seats: type === 'luxury' ? 4 : type === 'suite' ? 4 : 2,
+      occupied_seats: status === 'booked' ? 2 : 0,
+      gender: Math.random() > 0.5 ? 'M' : 'F'
     });
   }
 
@@ -651,6 +666,9 @@ const createFloorRooms = (floor: number): Room[] => {
       description: `${type === 'luxury' ? 'Люксовый' : type === 'suite' ? 'Сьют' : 'Стандартный'} номер`,
       amenities: ['Wi-Fi', 'TV', 'Кондиционер', type === 'luxury' ? 'Мини-бар' : type === 'suite' ? 'Джакузи' : ''],
       images: [],
+      seats: type === 'luxury' ? 4 : type === 'suite' ? 4 : 2,
+      occupied_seats: status === 'booked' ? 2 : 0,
+      gender: Math.random() > 0.5 ? 'M' : 'F'
     });
   }
 
@@ -666,7 +684,24 @@ const rooms = ref<Record<number, Room[]>>({
   5: createFloorRooms(5),
 });
 
-const currentFloorRooms = computed(() => rooms.value[currentFloor.value] || []);
+const currentFloorRooms = computed(() => {
+  console.log('Текущий этаж:', currentFloor.value);
+  console.log('Доступные этажи:', Object.keys(rooms.value || {}));
+  console.log('Комнаты на текущем этаже:', rooms.value?.[currentFloor.value]);
+  
+  if (!rooms.value) {
+    console.log('rooms.value is null');
+    return [];
+  }
+  
+  if (!rooms.value[currentFloor.value]) {
+    console.log(`Нет комнат на этаже ${currentFloor.value}`);
+    return [];
+  }
+  
+  console.log(`Найдено ${rooms.value[currentFloor.value].length} комнат на этаже ${currentFloor.value}`);
+  return rooms.value[currentFloor.value];
+});
 
 const getStatusText = (status: RoomStatus): string => {
   switch (status) {
@@ -687,23 +722,10 @@ const getRoomTypeName = (type: RoomType): string => {
   return type === 'luxury' ? 'Люкс' : type === 'suite' ? 'Сьют' : 'Стандарт';
 };
 
+const bookingDialogRef = ref();
+
 const handleRoomClick = (room: Room) => {
-  if (room.status === 'free') {
-    // Сбрасываем предыдущий выбор
-    Object.values(rooms.value).forEach(floorRooms => {
-      floorRooms.forEach(r => {
-        if (r.status === 'selected') {
-          r.status = 'free';
-          r.fill = '#e0f7fa';
-        }
-      });
-    });
-    
-    // Выбираем новую комнату
-    room.status = 'selected';
-    room.fill = '#c8e6c9';
-    selectedRoom.value = room;
-  }
+  selectedRoom.value = room;
 };
 
 const handleRoomHover = (room: Room) => {
@@ -718,57 +740,34 @@ const handleRoomHoverOut = (room: Room) => {
   }
 };
 
-const handleZoom = (e: WheelEvent) => {
-  if (e.cancelable) {
-    e.preventDefault();
-  }
+const handleZoom = (e: any) => {
+  e.evt.preventDefault();
   
-  const scaleBy = stageConfig.scaleStep;
+  const scaleBy = 1.1;
   const oldScale = stageConfig.transform.scale;
   
-  // Получаем позицию курсора относительно сцены
-  const stage = e.target as HTMLElement;
-  const rect = stage.getBoundingClientRect();
-  const pointer = {
-    x: e.clientX - rect.left,
-    y: e.clientY - rect.top
-  };
-  
   // Вычисляем новый масштаб
-  const newScale = e.deltaY > 0 ? oldScale / scaleBy : oldScale * scaleBy;
-  const clampedScale = Math.max(stageConfig.minScale, Math.min(stageConfig.maxScale, newScale));
-  
-  // Вычисляем точку относительно текущего масштаба
-  const mousePointTo = {
-    x: (pointer.x - stageConfig.transform.x) / oldScale,
-    y: (pointer.y - stageConfig.transform.y) / oldScale
-  };
-  
-  // Вычисляем новую позицию
-  const newPos = {
-    x: pointer.x - mousePointTo.x * clampedScale,
-    y: pointer.y - mousePointTo.y * clampedScale
-  };
+  const newScale = e.evt.deltaY > 0 ? oldScale / scaleBy : oldScale * scaleBy;
+  const clampedScale = Math.max(0.3, Math.min(5, newScale));
   
   // Обновляем состояние
   stageConfig.transform.scale = clampedScale;
-  stageConfig.transform.x = newPos.x;
-  stageConfig.transform.y = newPos.y;
 };
 
 const handleBooking = async () => {
   if (!selectedRoom.value) return;
 
   try {
-    // Здесь будет запрос к API для бронирования
-    const response = await fetch('/api/booking/', {
+    const response = await fetch('/api/checkin/create/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        roomId: selectedRoom.value.id,
-        // Другие данные для бронирования
+        room: selectedRoom.value.id,
+        start_date: new Date().toISOString().split('T')[0],
+        end_date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        status: 'active'
       }),
     });
 
@@ -779,10 +778,14 @@ const handleBooking = async () => {
         detail: 'Номер успешно забронирован',
         life: 3000,
       });
+      
       // Обновляем статус комнаты
       selectedRoom.value.status = 'booked';
       selectedRoom.value.fill = '#ffcdd2';
       selectedRoom.value = null;
+      
+      // Обновляем данные
+      await loadRooms();
     } else {
       throw new Error('Ошибка при бронировании');
     }
@@ -796,13 +799,63 @@ const handleBooking = async () => {
   }
 };
 
-// Функция для загрузки данных с бэкенда
-const fetchRooms = async () => {
+const loadRooms = async () => {
   try {
-    const response = await fetch('/api/rooms');
+    console.log('Начинаем загрузку данных...');
+    const response = await fetch('/api/rooms/list/');
     if (!response.ok) throw new Error('Ошибка загрузки данных');
     const data = await response.json();
-    rooms.value = data;
+    console.log('Полученные данные с сервера:', data);
+    
+    // Преобразуем данные в нужный формат
+    const formattedRooms = data.reduce((acc: Record<number, Room[]>, room: any) => {
+      // Получаем этаж из первой цифры номера
+      const floor = parseInt(room.number.charAt(0));
+      console.log('Обработка комнаты:', room.number, 'Этаж:', floor);
+      
+      if (!acc[floor]) {
+        console.log('Создаем новый этаж:', floor);
+        acc[floor] = [];
+      }
+      
+      // Рассчитываем координаты
+      const x = calculateX(room.number);
+      const y = calculateY(room.number);
+      console.log('Рассчитанные координаты для комнаты', room.number, ':', { x, y });
+      
+      const roomData: Room = {
+        id: room.id,
+        number: room.number,
+        floor,
+        type: getRoomType(room.seats),
+        status: room.occupied_seats === 0 ? 'free' : 'booked' as RoomStatus,
+        price: calculatePrice(room.seats),
+        x,
+        y,
+        fill: room.occupied_seats === 0 ? '#e0f7fa' : '#ffcdd2',
+        capacity: room.seats,
+        description: getRoomDescription(room.seats),
+        amenities: ['Wi-Fi', 'TV', 'Кондиционер'],
+        images: [],
+        seats: room.seats,
+        occupied_seats: room.occupied_seats,
+        gender: room.gender
+      };
+      
+      console.log('Добавление комнаты:', roomData);
+      acc[floor].push(roomData);
+      
+      return acc;
+    }, {});
+    
+    console.log('Отформатированные данные:', formattedRooms);
+    rooms.value = formattedRooms;
+    
+    // Проверяем, что этажи созданы правильно
+    console.log('Доступные этажи:', Object.keys(rooms.value));
+    Object.entries(rooms.value).forEach(([floor, rooms]) => {
+      console.log(`Этаж ${floor}:`, rooms.length, 'комнат');
+    });
   } catch (error) {
     console.error('Ошибка при загрузке данных:', error);
     toast.add({
@@ -814,91 +867,83 @@ const fetchRooms = async () => {
   }
 };
 
-// Обновляем обработчики тач-событий
-const handleTouchStart = (e: TouchEvent) => {
-  // Предотвращаем стандартное поведение для всех тач-событий
-  e.preventDefault();
+// Вспомогательные функции для преобразования данных
+const getRoomType = (seats: number): RoomType => {
+  if (seats >= 4) return 'suite';
+  if (seats >= 3) return 'luxury';
+  return 'standard';
+};
+
+const calculatePrice = (seats: number): number => {
+  if (seats >= 4) return 8000;
+  if (seats >= 3) return 5000;
+  return 3000;
+};
+
+const calculateX = (number: string): number => {
+  const roomNum = parseInt(number.slice(1));
+  const floor = parseInt(number.charAt(0));
+  console.log('Расчет X для комнаты:', number, 'Номер без этажа:', roomNum, 'Этаж:', floor);
   
-  if (e.touches.length === 1) {
-    const touch = e.touches[0];
-    const stage = e.target as HTMLElement;
-    const rect = stage.getBoundingClientRect();
-    const x = touch.clientX - rect.left;
-    const y = touch.clientY - rect.top;
-    
-    stageConfig.lastTouchX = x;
-    stageConfig.lastTouchY = y;
-  } else if (e.touches.length === 2) {
-    const touch1 = e.touches[0];
-    const touch2 = e.touches[1];
-    stageConfig.lastDistance = Math.hypot(
-      touch2.clientX - touch1.clientX,
-      touch2.clientY - touch1.clientY
-    );
+  // Базовые отступы
+  const startX = LAYOUT.MARGIN + LAYOUT.SERVICE_ROOM_WIDTH + LAYOUT.MARGIN;
+  const corridorWidthValue = corridorWidth.value;
+  const roomWidth = LAYOUT.ROOM_WIDTH;
+  const roomSpacing = LAYOUT.ROOM_SPACING;
+  
+  // Рассчитываем позицию в ряду (0-2 для каждого ряда)
+  const rowPosition = (roomNum - 1) % 3;
+  
+  // Определяем, в каком ряду находится комната
+  if (roomNum <= 3) {
+    // Верхний ряд, левая сторона
+    return startX + rowPosition * (roomWidth + roomSpacing);
+  } else if (roomNum <= 6) {
+    // Верхний ряд, правая сторона
+    return startX + corridorWidthValue / 2 + roomSpacing + rowPosition * (roomWidth + roomSpacing);
+  } else if (roomNum <= 9) {
+    // Нижний ряд, левая сторона
+    return startX + rowPosition * (roomWidth + roomSpacing);
+  } else {
+    // Нижний ряд, правая сторона
+    return startX + corridorWidthValue / 2 + roomSpacing + rowPosition * (roomWidth + roomSpacing);
   }
 };
 
-const handleTouchMove = (e: TouchEvent) => {
-  // Предотвращаем стандартное поведение для всех тач-событий
-  e.preventDefault();
+const calculateY = (number: string): number => {
+  const roomNum = parseInt(number.slice(1));
+  const floor = parseInt(number.charAt(0));
+  console.log('Расчет Y для комнаты:', number, 'Номер без этажа:', roomNum, 'Этаж:', floor);
   
-  if (e.touches.length === 1) {
-    const touch = e.touches[0];
-    const stage = e.target as HTMLElement;
-    const rect = stage.getBoundingClientRect();
-    const x = touch.clientX - rect.left;
-    const y = touch.clientY - rect.top;
-    
-    const dx = x - stageConfig.lastTouchX;
-    const dy = y - stageConfig.lastTouchY;
-    
-    stageConfig.transform.x += dx;
-    stageConfig.transform.y += dy;
-    
-    stageConfig.lastTouchX = x;
-    stageConfig.lastTouchY = y;
-  } else if (e.touches.length === 2) {
-    const touch1 = e.touches[0];
-    const touch2 = e.touches[1];
-    const distance = Math.hypot(
-      touch2.clientX - touch1.clientX,
-      touch2.clientY - touch1.clientY
-    );
-    
-    if (stageConfig.lastDistance) {
-      const scale = distance / stageConfig.lastDistance;
-      const newScale = stageConfig.transform.scale * scale;
-      stageConfig.transform.scale = Math.max(stageConfig.minScale, Math.min(stageConfig.maxScale, newScale));
-    }
-    
-    stageConfig.lastDistance = distance;
+  // Базовые отступы
+  const startY = LAYOUT.MARGIN;
+  const roomHeight = LAYOUT.ROOM_HEIGHT;
+  const margin = LAYOUT.MARGIN;
+  const floorHeight = LAYOUT.FLOOR_HEIGHT;
+  
+  // Базовый отступ для этажа
+  const floorOffset = (floor - 1) * floorHeight;
+  
+  // Определяем, в каком ряду находится комната
+  if (roomNum <= 6) {
+    // Верхний ряд
+    return startY + floorOffset;
+  } else {
+    // Нижний ряд
+    return startY + floorOffset + roomHeight + margin;
   }
 };
 
-const handleTouchEnd = () => {
-  stageConfig.lastDistance = null;
+const getRoomDescription = (seats: number): string => {
+  if (seats >= 4) return 'Сьют';
+  if (seats >= 3) return 'Люксовый номер';
+  return 'Стандартный номер';
 };
 
 // Обновляем mounted
 onMounted(() => {
-  stageConfig.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  if (stageConfig.isMobile) {
-    stageConfig.minScale = 0.2;
-    stageConfig.maxScale = 6;
-    stageConfig.scaleStep = 1.05;
-    
-    // Добавляем обработчики для предотвращения стандартного масштабирования
-    document.addEventListener('gesturestart', (e) => e.preventDefault(), { passive: false });
-    document.addEventListener('gesturechange', (e) => e.preventDefault(), { passive: false });
-    document.addEventListener('gestureend', (e) => e.preventDefault(), { passive: false });
-    
-    // Добавляем мета-тег для предотвращения масштабирования страницы
-    const meta = document.createElement('meta');
-    meta.name = 'viewport';
-    meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no';
-    document.head.appendChild(meta);
-  }
-  fetchRooms();
+  console.log('Компонент смонтирован');
+  loadRooms();
 });
 
 // Обновляем unmounted

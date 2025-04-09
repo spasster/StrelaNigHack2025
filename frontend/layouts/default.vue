@@ -1,7 +1,9 @@
 <template>
-  <div class="padding-def font-paratype">
-    <Navbar />
-    <slot />
+  <div>
+    <div class="padding-def font-paratype">
+      <Navbar />
+      <slot />
+    </div>
     <Footer />
   </div>
 </template>

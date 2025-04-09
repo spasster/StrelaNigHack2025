@@ -1,5 +1,11 @@
 <!-- components/ReportsManager.vue -->
 <script setup>
+import { ref, onMounted } from 'vue'
+import { useFetch } from '~/composables/useFetch'
+import { useToast } from 'primevue/usetoast'
+
+const toast = useToast()
+const { fetchWithAuth } = useFetch()
 const loading = ref(false)
 const reports = ref({
   occupancy: null,
@@ -10,29 +16,29 @@ const reports = ref({
 const loadReports = async () => {
   loading.value = true
   try {
-    const [occupancyRes, checkinRes, universityRes] = await Promise.all([
-      fetch('/api/rooms/reports/occupancy/', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        }
-      }),
-      fetch('/api/rooms/reports/checkin/', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        }
-      }),
-      fetch('/api/rooms/reports/university/', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-        }
-      })
+    const [occupancyResponse, checkinResponse, universityResponse] = await Promise.all([
+      fetchWithAuth('/api/rooms/reports/occupancy/'),
+      fetchWithAuth('/api/rooms/reports/checkin/'),
+      fetchWithAuth('/api/rooms/reports/university/')
     ])
 
-    reports.value.occupancy = await occupancyRes.json()
-    reports.value.checkin = await checkinRes.json()
-    reports.value.university = await universityRes.json()
+    const occupancyData = await occupancyResponse.json()
+    const checkinData = await checkinResponse.json()
+    const universityData = await universityResponse.json()
+
+    reports.value = {
+      occupancy: occupancyData,
+      checkin: checkinData,
+      university: universityData
+    }
   } catch (error) {
     console.error('Ошибка при загрузке отчетов:', error)
+    toast.add({
+      severity: 'error',
+      summary: 'Ошибка',
+      detail: 'Не удалось загрузить отчеты',
+      life: 3000
+    })
   } finally {
     loading.value = false
   }
@@ -40,24 +46,28 @@ const loadReports = async () => {
 
 const exportReport = async (type) => {
   try {
-    const response = await fetch(`/api/rooms/reports/export/?report_type=${type}`, {
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-      }
-    })
+    const response = await fetchWithAuth(`/api/rooms/reports/export/?report_type=${type}`)
     if (response.ok) {
       const blob = await response.blob()
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `${type}_report.xlsx`
+      a.download = `report_${type}.pdf`
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
+    } else {
+      throw new Error('Ошибка при экспорте отчета')
     }
   } catch (error) {
     console.error('Ошибка при экспорте отчета:', error)
+    toast.add({
+      severity: 'error',
+      summary: 'Ошибка',
+      detail: 'Не удалось экспортировать отчет',
+      life: 3000
+    })
   }
 }
 
