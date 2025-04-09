@@ -48,7 +48,7 @@ class RoomSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Room
-        fields = ['id', 'seats', 'occupied_seats', 'available_seats', 'gender', 'furniture', 'check_ins']
+        fields = ['id', 'number', 'seats', 'occupied_seats', 'available_seats', 'gender', 'furniture', 'check_ins']
 
     def get_available_seats(self, obj):
         return obj.available_seats

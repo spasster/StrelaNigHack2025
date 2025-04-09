@@ -2,6 +2,7 @@ from django.db import models
 from django.core.validators import MinValueValidator, MaxValueValidator
 
 class Room(models.Model):
+    number = models.CharField(max_length=10, verbose_name='Номер комнаты', unique=True)
     seats = models.PositiveIntegerField(verbose_name='Количество мест')
     occupied_seats = models.PositiveIntegerField(
         verbose_name='Занятые места',
@@ -18,7 +19,7 @@ class Room(models.Model):
         verbose_name_plural = 'Комнаты'
 
     def __str__(self):
-        return f"Комната {self.id} ({self.gender})"
+        return f"Комната {self.number} ({self.gender})"
 
     @property
     def available_seats(self):
