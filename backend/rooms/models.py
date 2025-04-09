@@ -41,6 +41,7 @@ class Room(models.Model):
 
 class Furniture(models.Model):
     type = models.CharField(max_length=100, verbose_name='Тип мебели')
+    count = models.PositiveIntegerField(default=1, verbose_name='Количество')
     room = models.ForeignKey(
         Room,
         on_delete=models.CASCADE,
@@ -55,7 +56,7 @@ class Furniture(models.Model):
         verbose_name_plural = 'Мебель'
 
     def __str__(self):
-        return f"{self.type} в комнате {self.room.id}"
+        return f"{self.type} (x{self.count}) в комнате {self.room.id}"
 
     def move_to_room(self, new_room):
         """Перемещает мебель в другую комнату"""

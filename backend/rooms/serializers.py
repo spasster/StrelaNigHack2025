@@ -38,8 +38,13 @@ class CheckInInformationSerializer(serializers.ModelSerializer):
 class FurnitureSerializer(serializers.ModelSerializer):
     class Meta:
         model = Furniture
-        fields = ['id', 'type', 'room']
+        fields = ['id', 'type', 'count', 'room']
         read_only_fields = ['id']
+
+    def validate_count(self, value):
+        if value < 1:
+            raise serializers.ValidationError("Количество мебели должно быть больше 0")
+        return value
 
 class RoomSerializer(serializers.ModelSerializer):
     available_seats = serializers.SerializerMethodField()
