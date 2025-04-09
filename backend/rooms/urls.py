@@ -15,6 +15,7 @@ from .views import (
     CheckInReportView,
     ExportReportView,
     CheckInInformationWithoutRoomCreateView,
+    CheckInInformationWithoutRoomAndEmailCreateView,
     AllCheckInInformationListView,
     CheckInInformationAssignView,
     CheckInInformationUnassignView
@@ -36,6 +37,7 @@ urlpatterns = [
     path('reports/checkin/', CheckInReportView.as_view(), name='checkin-report'),
     path('reports/export/', ExportReportView.as_view(), name='export-report'),
     path('check-in/without-room/', CheckInInformationWithoutRoomCreateView.as_view(), name='check-in-without-room'),
+    path('check-in/without-room-and-email/', CheckInInformationWithoutRoomAndEmailCreateView.as_view(), name='check-in-without-room-and-email'),
     path('check-in/all/', AllCheckInInformationListView.as_view(), name='all-check-ins'),
     path('check-in/assign/', CheckInInformationAssignView.as_view(), name='check-in-assign'),
     path('check-in/unassign/', CheckInInformationUnassignView.as_view(), name='check-in-unassign'),

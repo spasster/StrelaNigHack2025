@@ -11,6 +11,7 @@ from .serializers import (
     UniversityReportSerializer,
     CheckInReportSerializer,
     CheckInInformationWithoutRoomSerializer,
+    CheckInInformationWithoutRoomAndEmailSerializer,
     CheckInInformationAssignSerializer
 )
 from drf_yasg.utils import swagger_auto_schema
@@ -565,4 +566,31 @@ class CheckInInformationUnassignView(generics.GenericAPIView):
                 'message': 'Студент успешно выселен из комнаты',
                 'data': CheckInInformationSerializer(check_in).data
             })
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class CheckInInformationWithoutRoomAndEmailCreateView(generics.CreateAPIView):
+    """
+    Создание информации о заселении без привязки к комнате и с автоматическим использованием email из токена.
+    """
+    queryset = CheckInInformation.objects.all()
+    serializer_class = CheckInInformationWithoutRoomAndEmailSerializer
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_description="Создание информации о заселении без привязки к комнате (email берется из токена)",
+        request_body=CheckInInformationWithoutRoomAndEmailSerializer,
+        responses={
+            201: CheckInInformationWithoutRoomAndEmailSerializer,
+            400: "Неверные данные"
+        }
+    )
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            self.perform_create(serializer)
+            headers = self.get_success_headers(serializer.data)
+            return Response({
+                'message': 'Информация о заселении успешно создана',
+                'data': serializer.data
+            }, status=status.HTTP_201_CREATED, headers=headers)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

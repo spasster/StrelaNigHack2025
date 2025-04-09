@@ -128,4 +128,28 @@ class CheckInInformationAssignSerializer(serializers.Serializer):
         except Room.DoesNotExist:
             raise serializers.ValidationError(
                 {'error': 'Комната не найдена'}
-            ) 
+            )
+
+class CheckInInformationWithoutRoomAndEmailSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CheckInInformation
+        fields = [
+            'id', 'name', 'surname', 'fathername',
+            'phone_number', 'birth_date', 'university',
+            'faculty', 'course', 'check_in_date',
+            'check_out_date'
+        ]
+        read_only_fields = ['id']
+
+    def validate(self, attrs):
+        # Проверяем, что пользователь аутентифицирован
+        if not self.context['request'].user.is_authenticated:
+            raise serializers.ValidationError(
+                {'error': 'Пользователь не аутентифицирован'}
+            )
+        return attrs
+
+    def create(self, validated_data):
+        # Добавляем email из токена
+        validated_data['email'] = self.context['request'].user.email
+        return super().create(validated_data) 
