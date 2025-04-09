@@ -99,10 +99,14 @@
 
       <!-- Кнопка авторизации/профиль -->
       <div>
-        <template v-if="isAuthenticated">
+        <template v-if="authStore.isAuthenticated">
+          <Menu ref="menu" :model="profileMenuItems" :popup="true" :pt="{
+              root: { class: 'bg-custom-card text-white border-none rounded-lg shadow-lg' }
+            }" />
           <button 
             class="p-2 rounded-full text-white hover:bg-custom-yellow transition-colors"
             aria-label="Профиль"
+            @click="menu.toggle($event)"
           >
             <svg 
               class="w-6 h-6" 
@@ -120,32 +124,101 @@
           </button>
         </template>
         <template v-else>
-          <CustomButton @click="openAuth">
-            Авторизация
-          </CustomButton>
+          <CustomButton @click="showLogin">Войти</CustomButton>
         </template>
       </div>
     </div>
   </nav>
-  <LoginDialog ref="loginDialog" class="mx-4" />
+  <LoginDialog ref="loginDialog" class="mx-4" @switch-to-registration="showRegistration" />
+  <RegistrationDialog ref="registrationDialog" class="mx-4" @switch-to-login="showLogin" />
 </template>
 
 <script lang="ts" setup>
-const visible = ref(false)
-const isAuthenticated = ref(false) // Здесь будет ваша логика аутентификации
-const loginDialog = ref()
+import { useAuthStore } from '~/stores/auth'
 
-const openAuth = () => {
+const visible = ref(false)
+const authStore = useAuthStore()
+const loginDialog = ref()
+const registrationDialog = ref()
+const menu = ref()
+
+const showLogin = () => {
+  registrationDialog.value?.hide?.()
   loginDialog.value.show()
 }
+
+const showRegistration = () => {
+  loginDialog.value?.hide?.()
+  registrationDialog.value.show()
+}
+
+const handleLogout = () => {
+  authStore.logout()
+  // Можно добавить редирект на главную страницу
+  navigateTo('/')
+}
+
+const profileMenuItems = computed(() => [
+  {
+    label: 'Профиль',
+    icon: 'pi pi-user',
+    command: () => navigateTo('/profile')
+  },
+  {
+    label: 'Выйти',
+    icon: 'pi pi-sign-out',
+    command: handleLogout
+  }
+])
 </script>
 
-<style>
+<style scoped>
 .p-drawer {
   background: rgba(0, 0, 0, 0.75) !important;
 }
 
-.p-drawer .p-drawer-content {
-  background: rgba(0, 0, 0, 0.75) !important;
+:deep(.p-menu) {
+  @apply bg-black/75 border-none rounded-lg shadow-lg backdrop-blur-sm;
+  min-width: 200px;
+}
+
+:deep(.p-menu .p-menuitem) {
+  @apply text-white hover:bg-custom-yellow hover:text-black transition-colors;
+  margin: 0.25rem;
+  border-radius: 0.5rem;
+}
+
+:deep(.p-menu .p-menuitem:first-child) {
+  margin-top: 0.5rem;
+}
+
+:deep(.p-menu .p-menuitem:last-child) {
+  margin-bottom: 0.5rem;
+}
+
+:deep(.p-menu .p-menuitem .p-menuitem-content) {
+  @apply p-3;
+}
+
+:deep(.p-menu .p-menuitem .p-menuitem-icon) {
+  @apply text-white mr-2;
+  font-size: 1rem;
+}
+
+:deep(.p-menu .p-menuitem:hover .p-menuitem-icon) {
+  @apply text-black;
+}
+
+:deep(.p-menu .p-menuitem .p-menuitem-text) {
+  @apply font-medium;
+}
+
+:deep(.p-menu .p-submenu-header) {
+  @apply bg-transparent text-white;
+}
+
+:deep(.p-menu .p-submenu-list) {
+  @apply bg-black/75 border-none rounded-lg shadow-lg backdrop-blur-sm;
+  margin: 0.25rem;
 }
 </style>

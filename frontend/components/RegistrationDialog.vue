@@ -69,6 +69,25 @@
           <label class="text-white/50" for="password">Пароль</label>
         </span>
       </div>
+
+      <div class="field">
+        <span class="p-float-label">
+          <Password
+            id="password2"
+            v-model="form.password2"
+            :feedback="false"
+            toggleMask
+            class="w-full"
+            input-class="w-full"
+          />
+          <label class="text-white/50" for="password2">Повторите пароль</label>
+        </span>
+      </div>
+
+      <div class="text-center text-sm">
+        <span class="text-white/60">Уже есть аккаунт?</span>
+        <a href="#" class="text-primary hover:text-primary/80 ml-1" @click.prevent="switchToLogin">Войдите</a>
+      </div>
     </div>
 
     <template #footer>
@@ -81,24 +100,98 @@
 </template>
 
 <script setup lang="ts">
+import { useAuthStore } from '~/stores/auth'
+import { useToast } from 'primevue/usetoast'
 
 const visible = ref(false)
+const authStore = useAuthStore()
+const toast = useToast()
+const emit = defineEmits(['switch-to-login'])
+
 const form = reactive({
   firstName: '',
   lastName: '',
   birthDate: null,
   email: '',
-  password: ''
+  password: '',
+  password2: ''
 })
 
-const handleSubmit = () => {
-  // Здесь будет логика отправки формы
-  console.log('Form submitted:', form)
+const switchToLogin = () => {
+  visible.value = false
+  emit('switch-to-login')
+}
+
+const handleSubmit = async () => {
+  // Проверяем заполнение всех полей
+  if (!form.firstName || !form.lastName || !form.birthDate || !form.email || !form.password || !form.password2) {
+    toast.add({
+      severity: 'error',
+      summary: 'Ошибка',
+      detail: 'Пожалуйста, заполните все поля',
+      life: 3000
+    })
+    return
+  }
+
+  // Проверяем совпадение паролей
+  if (form.password !== form.password2) {
+    toast.add({
+      severity: 'error',
+      summary: 'Ошибка',
+      detail: 'Пароли не совпадают',
+      life: 3000
+    })
+    return
+  }
+
+  try {
+    const result = await authStore.register({
+      firstName: form.firstName,
+      lastName: form.lastName,
+      birthDate: form.birthDate,
+      email: form.email,
+      password: form.password,
+      password2: form.password2
+    })
+
+    if (result.success) {
+      toast.add({
+        severity: 'success',
+        summary: 'Успех',
+        detail: 'Регистрация успешно завершена',
+        life: 3000
+      })
+      visible.value = false
+      // Очищаем форму
+      form.firstName = ''
+      form.lastName = ''
+      form.birthDate = null
+      form.email = ''
+      form.password = ''
+      form.password2 = ''
+    } else {
+      toast.add({
+        severity: 'error',
+        summary: 'Ошибка',
+        detail: result.message || 'Произошла ошибка при регистрации',
+        life: 3000
+      })
+    }
+  } catch (error) {
+    toast.add({
+      severity: 'error',
+      summary: 'Ошибка',
+      detail: 'Произошла ошибка при регистрации',
+      life: 3000
+    })
+  }
 }
 
 // Экспортируем метод для открытия диалога
 defineExpose({
-  show: () => visible.value = true
+  show: () => visible.value = true,
+  hide: () => visible.value = false
 })
 </script>
 

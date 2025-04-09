@@ -1,6 +1,9 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import Aura from '@primeuix/themes/aura';
 import { definePreset } from '@primeuix/themes'
+import process from 'node:process'
+
+const sw = process.env.SW === 'true'
 
 const CustomBluePreset = definePreset(Aura, {
   semantic: {
@@ -26,7 +29,9 @@ export default defineNuxtConfig({
   modules: [
     '@primevue/nuxt-module',
     '@nuxtjs/tailwindcss',
-    '@pinia/nuxt'
+    '@pinia/nuxt',
+    '@productdevbook/chatwoot',
+    '@vite-pwa/nuxt'
   ],
   tailwindcss: { exposeConfig: true },
   primevue: {
@@ -37,10 +42,71 @@ export default defineNuxtConfig({
             preset: CustomBluePreset,
             options: {
                 prefix: 'p',
-                darkModeSelector: '.dark',
+                darkModeSelector: 'system',
                 cssLayer: false
             }
         }
+    }
+  },
+  chatwoot: {
+    init: {
+      websiteToken: 'hgtcfHPGX3n9AGjoPXKbiqVz'
+    },
+    settings: {
+      locale: 'ru',
+      position: 'right',
+      launcherTitle: 'Нужна помощь?',
+      // ... and more settings
+    },
+    // If this is loaded you can make it true, https://github.com/nuxt-modules/partytown
+    partytown: false,
+  },
+  pwa: {
+    strategies: sw ? 'injectManifest' : 'generateSW',
+    srcDir: sw ? 'service-worker' : undefined,
+    filename: sw ? 'sw.ts' : undefined,
+    registerType: 'autoUpdate',
+    manifest: {
+      name: 'Spasters',
+      short_name: 'Spasters',
+      theme_color: '#000000',
+      icons: [
+        {
+          src: 'pwa-192-192.png',
+          sizes: '192x192',
+          type: 'image/png',
+        },
+        {
+          src: 'pwa-512-512.png',
+          sizes: '512x512',
+          type: 'image/png',
+        },
+        {
+          src: 'pwa-512-512.png',
+          sizes: '512x512',
+          type: 'image/png',
+          purpose: 'any maskable',
+        },
+      ],
+    },
+    workbox: {
+      globPatterns: ['**/*.{js,css,html,png,svg,ico}'],
+    },
+    injectManifest: {
+      globPatterns: ['**/*.{js,css,html,png,svg,ico}'],
+    },
+    client: {
+      installPrompt: true,
+      // you don't need to include this: only for testing purposes
+      // if enabling periodic sync for update use 1 hour or so (periodicSyncForUpdates: 3600)
+      periodicSyncForUpdates: 20,
+    },
+    devOptions: {
+      enabled: true,
+      suppressWarnings: true,
+      navigateFallback: '/',
+      navigateFallbackAllowlist: [/^\/$/],
+      type: 'module',
     }
   },
   css: [

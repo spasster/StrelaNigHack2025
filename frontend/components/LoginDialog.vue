@@ -35,6 +35,11 @@
           <label class="text-white/50" for="password">Пароль</label>
         </span>
       </div>
+
+      <div class="text-center text-sm">
+        <span class="text-white/60">Нет аккаунта?</span>
+        <a href="#" class="text-primary hover:text-primary/80 ml-1" @click.prevent="switchToRegistration">Зарегистрируйтесь</a>
+      </div>
     </div>
 
     <template #footer>
@@ -47,20 +52,52 @@
 </template>
 
 <script setup lang="ts">
+import { useAuthStore } from '~/stores/auth'
+import { useToast } from 'primevue/usetoast'
+
 const visible = ref(false)
+const authStore = useAuthStore()
+const toast = useToast()
+const emit = defineEmits(['switch-to-registration'])
+
 const form = reactive({
   email: '',
   password: ''
 })
 
-const handleSubmit = () => {
-  // Здесь будет логика отправки формы
-  console.log('Form submitted:', form)
+const switchToRegistration = () => {
+  visible.value = false
+  emit('switch-to-registration')
+}
+
+const handleSubmit = async () => {
+  const result = await authStore.login(form.email, form.password)
+  
+  if (result.success) {
+    toast.add({
+      severity: 'success',
+      summary: 'Успех',
+      detail: result.message,
+      life: 3000
+    })
+    visible.value = false
+    // Очищаем форму
+    form.email = ''
+    form.password = ''
+  } else {
+    toast.add({
+      severity: 'error',
+      summary: 'Ошибка',
+      detail: result.message,
+      life: 3000
+    })
+  }
 }
 
 // Экспортируем метод для открытия диалога
 defineExpose({
-  show: () => visible.value = true
+  show: () => visible.value = true,
+  hide: () => visible.value = false
 })
 </script>
 

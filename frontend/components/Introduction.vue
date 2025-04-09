@@ -1,6 +1,6 @@
 <template>
-  <section class="w-full h-screen absolute top-0 left-0 -z-10">
-    <div class="max-w-7xl gap-x-4 mx-auto px-4 pt-28 pb-10 md:px-6 flex flex-col md:flex-row items-center md:justify-between w-full h-full">
+  <section class="w-full h-[90vh] flex justify-center items-center">
+    <div class="max-w-7xl  h-screen  absolute top-0 -z-10 gap-x-4 mx-auto px-4 pt-28 pb-10 md:px-6 flex flex-col md:flex-row items-center md:justify-between w-full">
       <!-- Левая часть с текстом -->
       <div class="flex flex-col gap-6 md:gap-8 max-w-xl text-center md:text-left">
         <h1 class="text-3xl md:text-5xl font-bold text-white">

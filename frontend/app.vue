@@ -1,7 +1,7 @@
 <template>
   <div>
     <NuxtLoadingIndicator />
-    <!-- <NuxtPwaManifest /> -->
+    <NuxtPwaManifest />
 
     <NuxtLayout>
       <Toast />

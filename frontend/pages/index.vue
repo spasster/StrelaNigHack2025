@@ -1,6 +1,7 @@
 <template>
   <div class="container mx-auto p-4">
-    <Introduction />
+    <Introduction /> 
+    <Advantages />
   </div>
 </template>
 
