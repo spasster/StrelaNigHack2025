@@ -13,28 +13,28 @@ class AppealViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     
     def get_queryset(self):
-        if self.request.user.is_staff:
+        if self.request.user.is_admin:
             return Appeal.objects.all()
         return Appeal.objects.filter(user=self.request.user)
     
     def perform_destroy(self, instance):
-        if instance.user != self.request.user and not self.request.user.is_staff:
+        if instance.user != self.request.user and not self.request.user.is_admin:
             raise permissions.PermissionDenied("Вы не можете удалить это обращение")
         instance.delete()
     
     @action(detail=True, methods=['patch'])
     def update_status(self, request, pk=None):
         appeal = self.get_object()
-        if not request.user.is_staff:
+        if not request.user.is_admin:
             return Response(
                 {"detail": "У вас нет прав для изменения статуса"},
                 status=status.HTTP_403_FORBIDDEN
             )
         
-        serializer = AppealStatusSerializer(appeal, data=request.data, partial=True)
+        serializer = AppealStatusSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
+            serializer.update(appeal, serializer.validated_data)
+            return Response({"status": appeal.status})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     @action(detail=True, methods=['post'])

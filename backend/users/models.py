@@ -12,8 +12,7 @@ class UserManager(BaseUserManager):
         return user
 
     def create_superuser(self, email, password=None, **extra_fields):
-        extra_fields.setdefault('is_staff', True)
-        extra_fields.setdefault('is_superuser', True)
+        extra_fields.setdefault('is_admin', True)
         return self.create_user(email, password, **extra_fields)
 
 class User(AbstractUser):
@@ -26,6 +25,7 @@ class User(AbstractUser):
     is_staff = None
     is_superuser = None
     is_active = models.BooleanField(default=True)
+    is_admin = models.BooleanField(default=False)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
