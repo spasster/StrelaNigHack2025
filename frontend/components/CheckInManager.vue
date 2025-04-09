@@ -70,55 +70,55 @@
         </div>
         <div class="field">
           <span class="p-float-label">
-            <InputText id="name" v-model="checkInForm.name" class="w-full" />
+            <InputText id="name" v-model="checkInForm.resident.name" class="w-full" />
             <label class="text-white/50" for="name">Имя</label>
           </span>
         </div>
         <div class="field">
           <span class="p-float-label">
-            <InputText id="surname" v-model="checkInForm.surname" class="w-full" />
+            <InputText id="surname" v-model="checkInForm.resident.surname" class="w-full" />
             <label class="text-white/50" for="surname">Фамилия</label>
           </span>
         </div>
         <div class="field">
           <span class="p-float-label">
-            <InputText id="fathername" v-model="checkInForm.fathername" class="w-full" />
+            <InputText id="fathername" v-model="checkInForm.resident.fathername" class="w-full" />
             <label class="text-white/50" for="fathername">Отчество</label>
           </span>
         </div>
         <div class="field">
           <span class="p-float-label">
-            <InputText id="phone" v-model="checkInForm.phone_number" class="w-full" />
+            <InputText id="phone" v-model="checkInForm.resident.phone_number" class="w-full" />
             <label class="text-white/50" for="phone">Телефон</label>
           </span>
         </div>
         <div class="field">
           <span class="p-float-label">
-            <Calendar id="birth_date" v-model="checkInForm.birth_date" dateFormat="dd.mm.yy" class="w-full" />
+            <Calendar id="birth_date" v-model="checkInForm.resident.birth_date" dateFormat="dd.mm.yy" class="w-full" />
             <label class="text-white/50" for="birth_date">Дата рождения</label>
           </span>
         </div>
         <div class="field">
           <span class="p-float-label">
-            <InputText id="university" v-model="checkInForm.university" class="w-full" />
+            <InputText id="university" v-model="checkInForm.resident.university" class="w-full" />
             <label class="text-white/50" for="university">Университет</label>
           </span>
         </div>
         <div class="field">
           <span class="p-float-label">
-            <InputText id="faculty" v-model="checkInForm.faculty" class="w-full" />
+            <InputText id="faculty" v-model="checkInForm.resident.faculty" class="w-full" />
             <label class="text-white/50" for="faculty">Факультет</label>
           </span>
         </div>
         <div class="field">
           <span class="p-float-label">
-            <InputNumber id="course" v-model="checkInForm.course" :min="1" :max="6" class="w-full" />
+            <InputNumber id="course" v-model="checkInForm.resident.course" :min="1" :max="6" class="w-full" />
             <label class="text-white/50" for="course">Курс</label>
           </span>
         </div>
         <div class="field">
           <span class="p-float-label">
-            <InputText id="email" v-model="checkInForm.email" type="email" class="w-full" />
+            <InputText id="email" v-model="checkInForm.resident.email" type="email" class="w-full" />
             <label class="text-white/50" for="email">Email</label>
           </span>
         </div>
@@ -160,16 +160,18 @@ const filters = ref({
 })
 
 const checkInForm = ref({
+  resident: {
+    name: '',
+    surname: '',
+    fathername: '',
+    phone_number: '',
+    birth_date: null,
+    university: '',
+    faculty: '',
+    course: 1,
+    email: ''
+  },
   room: null,
-  name: '',
-  surname: '',
-  fathername: '',
-  phone_number: '',
-  birth_date: null,
-  university: '',
-  faculty: '',
-  course: 1,
-  email: '',
   check_in_date: null,
   check_out_date: null
 })
@@ -178,10 +180,14 @@ const checkInForm = ref({
 const loadCheckIns = async () => {
   loading.value = true
   try {
-    const response = await fetch('/api/rooms/check-in/list/')
+    const response = await fetch('/api/checkins/', {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    })
     checkIns.value = await response.json()
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Ошибка', detail: 'Не удалось загрузить список заселений', life: 3000 })
+    console.error('Ошибка при загрузке заселений:', error)
   } finally {
     loading.value = false
   }
@@ -190,53 +196,139 @@ const loadCheckIns = async () => {
 // Загрузка доступных комнат
 const loadAvailableRooms = async () => {
   try {
-    const response = await fetch('/api/rooms/list/')
+    const response = await fetch('/api/rooms/available/', {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    })
     availableRooms.value = await response.json()
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Ошибка', detail: 'Не удалось загрузить список комнат', life: 3000 })
+    console.error('Ошибка при загрузке доступных комнат:', error)
+  }
+}
+
+// Создание заселения
+const createCheckIn = async () => {
+  try {
+    // Сначала создаем жильца
+    const residentResponse = await fetch('/api/residents/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      },
+      body: JSON.stringify(checkInForm.value.resident)
+    })
+
+    if (!residentResponse.ok) {
+      throw new Error('Ошибка при создании жильца')
+    }
+
+    const resident = await residentResponse.json()
+
+    // Затем создаем заселение
+    const checkInResponse = await fetch('/api/checkins/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      },
+      body: JSON.stringify({
+        resident: resident.id,
+        room: checkInForm.value.room,
+        check_in_date: checkInForm.value.check_in_date,
+        check_out_date: checkInForm.value.check_out_date
+      })
+    })
+
+    if (checkInResponse.ok) {
+      toast.add({ severity: 'success', summary: 'Успех', detail: 'Заселение создано', life: 3000 })
+      closeCheckInDialog()
+      loadCheckIns()
+    }
+  } catch (error) {
+    console.error('Ошибка при создании заселения:', error)
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: 'Не удалось создать заселение', life: 3000 })
+  }
+}
+
+// Обновление заселения
+const updateCheckIn = async () => {
+  try {
+    // Обновляем данные жильца
+    const residentResponse = await fetch(`/api/residents/${editingCheckIn.value.resident.id}/`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      },
+      body: JSON.stringify(checkInForm.value.resident)
+    })
+
+    if (!residentResponse.ok) {
+      throw new Error('Ошибка при обновлении жильца')
+    }
+
+    // Обновляем заселение
+    const checkInResponse = await fetch(`/api/checkins/${editingCheckIn.value.id}/`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      },
+      body: JSON.stringify({
+        resident: editingCheckIn.value.resident.id,
+        room: checkInForm.value.room,
+        check_in_date: checkInForm.value.check_in_date,
+        check_out_date: checkInForm.value.check_out_date
+      })
+    })
+
+    if (checkInResponse.ok) {
+      toast.add({ severity: 'success', summary: 'Успех', detail: 'Заселение обновлено', life: 3000 })
+      closeCheckInDialog()
+      loadCheckIns()
+    }
+  } catch (error) {
+    console.error('Ошибка при обновлении заселения:', error)
+    toast.add({ severity: 'error', summary: 'Ошибка', detail: 'Не удалось обновить заселение', life: 3000 })
   }
 }
 
 // Сохранение заселения
 const saveCheckIn = async () => {
   try {
-    const url = editingCheckIn.value 
-      ? `/api/rooms/check-in/${editingCheckIn.value.id}/` 
-      : '/api/rooms/check-in/'
-    const method = editingCheckIn.value ? 'PUT' : 'POST'
-    
-    const response = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(checkInForm.value)
-    })
-    
-    if (response.ok) {
-      toast.add({ severity: 'success', summary: 'Успех', detail: 'Заселение сохранено', life: 3000 })
-      closeCheckInDialog()
-      loadCheckIns()
+    if (editingCheckIn.value) {
+      await updateCheckIn()
+    } else {
+      await createCheckIn()
     }
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Ошибка', detail: 'Не удалось сохранить заселение', life: 3000 })
+    console.error('Ошибка при сохранении заселения:', error)
   }
 }
 
 // Удаление заселения
 const confirmDeleteCheckIn = (checkIn) => {
   if (confirm('Вы уверены, что хотите удалить это заселение?')) {
-    deleteCheckIn(checkIn)
+    deleteCheckIn(checkIn.id)
   }
 }
 
-const deleteCheckIn = async (checkIn) => {
+const deleteCheckIn = async (id) => {
   try {
-    const response = await fetch(`/api/rooms/check-in/${checkIn.id}/`, { method: 'DELETE' })
+    const response = await fetch(`/api/checkins/${id}/`, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    })
     if (response.ok) {
       toast.add({ severity: 'success', summary: 'Успех', detail: 'Заселение удалено', life: 3000 })
       loadCheckIns()
     }
   } catch (error) {
-    toast.add({ severity: 'error', summary: 'Ошибка', detail: 'Не удалось удалить заселение', life: 3000 })
+    console.error('Ошибка при удалении заселения:', error)
   }
 }
 
@@ -251,16 +343,18 @@ const closeCheckInDialog = () => {
   showCheckInDialog.value = false
   editingCheckIn.value = null
   checkInForm.value = {
+    resident: {
+      name: '',
+      surname: '',
+      fathername: '',
+      phone_number: '',
+      birth_date: null,
+      university: '',
+      faculty: '',
+      course: 1,
+      email: ''
+    },
     room: null,
-    name: '',
-    surname: '',
-    fathername: '',
-    phone_number: '',
-    birth_date: null,
-    university: '',
-    faculty: '',
-    course: 1,
-    email: '',
     check_in_date: null,
     check_out_date: null
   }
