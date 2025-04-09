@@ -24,6 +24,10 @@ COPY . .
 # Создание директории для статических файлов
 RUN mkdir -p /app/static
 
+# Установка переменных окружения
+ENV DJANGO_SETTINGS_MODULE=backend.settings
+ENV PYTHONUNBUFFERED=1
+
 # Сборка статических файлов
 RUN python manage.py collectstatic --noinput
 
