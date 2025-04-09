@@ -1,5 +1,5 @@
 # Этап сборки
-FROM node:20-alpine as builder
+FROM node:18-alpine
 
 WORKDIR /app
 
@@ -15,14 +15,14 @@ COPY . .
 # Собираем приложение
 RUN npm run build
 
-# Этап продакшена
-FROM nginx:stable-alpine
+# Установка nginx
+RUN apk add --no-cache nginx
 
 # Копируем конфигурацию Nginx
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Копируем собранное приложение из этапа сборки
-COPY --from=builder /app/.output/public /usr/share/nginx/html
+# Копируем собранное приложение в директорию nginx
+RUN cp -r build/* /usr/share/nginx/html/
 
 # Открываем порт
 EXPOSE 80
