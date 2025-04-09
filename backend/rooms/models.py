@@ -44,7 +44,9 @@ class Furniture(models.Model):
         Room,
         on_delete=models.CASCADE,
         related_name='furniture',
-        verbose_name='Комната'
+        verbose_name='Комната',
+        null=True,
+        blank=True
     )
 
     class Meta:

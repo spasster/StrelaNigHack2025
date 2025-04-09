@@ -6,10 +6,18 @@ from .models import Room, CheckInInformation, Furniture
 from .serializers import (
     RoomSerializer, 
     CheckInInformationSerializer,
-    FurnitureSerializer
+    FurnitureSerializer,
+    OccupancyReportSerializer,
+    UniversityReportSerializer,
+    CheckInReportSerializer
 )
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
+from django.db.models import Count, F, Q
+from datetime import datetime, timedelta
+import pandas as pd
+from django.http import HttpResponse
+import io
 
 # Create your views here.
 
@@ -227,3 +235,217 @@ class UserCheckInInfoView(generics.RetrieveAPIView):
             {'error': 'Информация о заселении не найдена'}, 
             status=status.HTTP_404_NOT_FOUND
         )
+
+class AllFurnitureListView(generics.ListAPIView):
+    """
+    Получение списка всей мебели.
+    """
+    queryset = Furniture.objects.all()
+    serializer_class = FurnitureSerializer
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_description="Получение списка всей мебели",
+        responses={200: FurnitureSerializer(many=True)}
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
+class OccupancyReportView(generics.GenericAPIView):
+    """
+    Генерация отчета по заполняемости комнат.
+    """
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_description="Получение отчета по заполняемости комнат",
+        responses={200: OccupancyReportSerializer}
+    )
+    def get(self, request):
+        total_rooms = Room.objects.count()
+        occupied_rooms = Room.objects.filter(occupied_seats__gt=0).count()
+        free_rooms = total_rooms - occupied_rooms
+        occupancy_rate = (occupied_rooms / total_rooms) * 100 if total_rooms > 0 else 0
+        
+        rooms_by_gender = Room.objects.values('gender').annotate(
+            count=Count('id')
+        ).values('gender', 'count')
+        
+        data = {
+            'total_rooms': total_rooms,
+            'occupied_rooms': occupied_rooms,
+            'free_rooms': free_rooms,
+            'occupancy_rate': occupancy_rate,
+            'rooms_by_gender': {item['gender']: item['count'] for item in rooms_by_gender}
+        }
+        
+        serializer = OccupancyReportSerializer(data)
+        return Response(serializer.data)
+
+class UniversityReportView(generics.GenericAPIView):
+    """
+    Генерация отчета по распределению студентов по вузам, факультетам и курсам.
+    """
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_description="Получение отчета по распределению студентов",
+        responses={200: UniversityReportSerializer(many=True)}
+    )
+    def get(self, request):
+        reports = []
+        universities = CheckInInformation.objects.values('university').distinct()
+        
+        for uni in universities:
+            university = uni['university']
+            students = CheckInInformation.objects.filter(university=university)
+            
+            faculties = students.values('faculty').annotate(
+                count=Count('id')
+            ).values('faculty', 'count')
+            
+            courses = students.values('course').annotate(
+                count=Count('id')
+            ).values('course', 'count')
+            
+            data = {
+                'university': university,
+                'total_students': students.count(),
+                'faculties': {item['faculty']: item['count'] for item in faculties},
+                'courses': {item['course']: item['count'] for item in courses}
+            }
+            
+            reports.append(data)
+        
+        serializer = UniversityReportSerializer(reports, many=True)
+        return Response(serializer.data)
+
+class CheckInReportView(generics.GenericAPIView):
+    """
+    Генерация отчета по срокам проживания.
+    """
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_description="Получение отчета по срокам проживания",
+        responses={200: CheckInReportSerializer}
+    )
+    def get(self, request):
+        students = CheckInInformation.objects.all()
+        total_students = students.count()
+        
+        # Расчет средней продолжительности проживания
+        durations = []
+        for student in students:
+            if student.check_out_date:
+                duration = (student.check_out_date - student.check_in_date).days
+                durations.append(duration)
+        
+        average_stay_duration = sum(durations) / len(durations) if durations else 0
+        
+        # Группировка по продолжительности проживания
+        duration_ranges = {
+            'less_than_month': students.filter(
+                check_out_date__lte=F('check_in_date') + timedelta(days=30)
+            ).count(),
+            '1-3_months': students.filter(
+                check_out_date__gt=F('check_in_date') + timedelta(days=30),
+                check_out_date__lte=F('check_in_date') + timedelta(days=90)
+            ).count(),
+            '3-6_months': students.filter(
+                check_out_date__gt=F('check_in_date') + timedelta(days=90),
+                check_out_date__lte=F('check_in_date') + timedelta(days=180)
+            ).count(),
+            'more_than_6_months': students.filter(
+                check_out_date__gt=F('check_in_date') + timedelta(days=180)
+            ).count()
+        }
+        
+        data = {
+            'total_students': total_students,
+            'average_stay_duration': average_stay_duration,
+            'students_by_duration': duration_ranges
+        }
+        
+        serializer = CheckInReportSerializer(data)
+        return Response(serializer.data)
+
+class ExportReportView(generics.GenericAPIView):
+    """
+    Экспорт отчетов в Excel.
+    """
+    permission_classes = [IsAuthenticated]
+
+    @swagger_auto_schema(
+        operation_description="Экспорт отчетов в Excel",
+        manual_parameters=[
+            openapi.Parameter(
+                'report_type',
+                openapi.IN_QUERY,
+                description="Тип отчета (occupancy/university/checkin)",
+                type=openapi.TYPE_STRING
+            )
+        ]
+    )
+    def get(self, request):
+        report_type = request.query_params.get('report_type')
+        
+        if report_type == 'occupancy':
+            # Экспорт отчета по заполняемости
+            rooms = Room.objects.all()
+            data = []
+            for room in rooms:
+                data.append({
+                    'ID комнаты': room.id,
+                    'Всего мест': room.seats,
+                    'Занято мест': room.occupied_seats,
+                    'Пол': room.gender,
+                    'Заполняемость (%)': (room.occupied_seats / room.seats) * 100
+                })
+            
+        elif report_type == 'university':
+            # Экспорт отчета по вузам
+            students = CheckInInformation.objects.all()
+            data = []
+            for student in students:
+                data.append({
+                    'ВУЗ': student.university,
+                    'Факультет': student.faculty,
+                    'Курс': student.course,
+                    'ФИО': f"{student.surname} {student.name} {student.fathername}",
+                    'Комната': student.room.id if student.room else None
+                })
+            
+        elif report_type == 'checkin':
+            # Экспорт отчета по срокам проживания
+            students = CheckInInformation.objects.all()
+            data = []
+            for student in students:
+                duration = (student.check_out_date - student.check_in_date).days if student.check_out_date else None
+                data.append({
+                    'ФИО': f"{student.surname} {student.name} {student.fathername}",
+                    'Дата заселения': student.check_in_date,
+                    'Дата выселения': student.check_out_date,
+                    'Длительность проживания (дни)': duration,
+                    'Комната': student.room.id if student.room else None
+                })
+        
+        else:
+            return Response(
+                {'error': 'Неверный тип отчета'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Создание Excel файла
+        df = pd.DataFrame(data)
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+            df.to_excel(writer, sheet_name='Отчет', index=False)
+        
+        response = HttpResponse(
+            output.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{report_type}_report.xlsx"'
+        
+        return response

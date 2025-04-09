@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import Room, CheckInInformation, Furniture
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.db.models import Count, F
 
 class FurnitureSerializer(serializers.ModelSerializer):
     class Meta:
@@ -49,4 +50,22 @@ class CheckInInformationSerializer(serializers.ModelSerializer):
         # Проверяем, есть ли свободные места в комнате
         if room.occupied_seats >= room.seats:
             raise serializers.ValidationError("В комнате нет свободных мест")
-        return room 
+        return room
+
+class OccupancyReportSerializer(serializers.Serializer):
+    total_rooms = serializers.IntegerField()
+    occupied_rooms = serializers.IntegerField()
+    free_rooms = serializers.IntegerField()
+    occupancy_rate = serializers.FloatField()
+    rooms_by_gender = serializers.DictField()
+
+class UniversityReportSerializer(serializers.Serializer):
+    university = serializers.CharField()
+    total_students = serializers.IntegerField()
+    faculties = serializers.DictField()
+    courses = serializers.DictField()
+
+class CheckInReportSerializer(serializers.Serializer):
+    total_students = serializers.IntegerField()
+    average_stay_duration = serializers.FloatField()
+    students_by_duration = serializers.DictField() 

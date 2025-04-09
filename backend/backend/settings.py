@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -73,6 +74,7 @@ INSTALLED_APPS = [
     'users',
     'rooms',
     'bills',
+    'report',
     'corsheaders',
     'drf_yasg',
 ]
@@ -114,7 +116,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'Strela2025',
-        'USER': 'scrait',
+        'USER': 'postgres',
         'PASSWORD': 'sex123',
         'HOST': 'localhost',
         'PORT': '5432',
@@ -201,3 +203,6 @@ SWAGGER_SETTINGS = {
 REDOC_SETTINGS = {
     'LAZY_RENDERING': False,
 }
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

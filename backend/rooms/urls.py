@@ -8,7 +8,12 @@ from .views import (
     FurnitureListView,
     FurnitureMoveView,
     FurnitureDeleteView,
-    UserCheckInInfoView
+    UserCheckInInfoView,
+    AllFurnitureListView,
+    OccupancyReportView,
+    UniversityReportView,
+    CheckInReportView,
+    ExportReportView
 )
 
 urlpatterns = [
@@ -21,4 +26,9 @@ urlpatterns = [
     path('furniture/<int:pk>/move/', FurnitureMoveView.as_view(), name='furniture-move'),
     path('furniture/<int:pk>/delete/', FurnitureDeleteView.as_view(), name='furniture-delete'),
     path('my-check-in/', UserCheckInInfoView.as_view(), name='user-check-in-info'),
+    path('furniture/all/', AllFurnitureListView.as_view(), name='all-furniture'),
+    path('reports/occupancy/', OccupancyReportView.as_view(), name='occupancy-report'),
+    path('reports/university/', UniversityReportView.as_view(), name='university-report'),
+    path('reports/checkin/', CheckInReportView.as_view(), name='checkin-report'),
+    path('reports/export/', ExportReportView.as_view(), name='export-report'),
 ] 
