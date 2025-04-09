@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'users',
     'rooms',
+    'bills',
     'corsheaders',
     'drf_yasg',
 ]
