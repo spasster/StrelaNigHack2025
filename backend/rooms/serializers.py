@@ -4,23 +4,6 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.db.models import Count, F
 
-class FurnitureSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Furniture
-        fields = ['id', 'type', 'room']
-        read_only_fields = ['id']
-
-class RoomSerializer(serializers.ModelSerializer):
-    available_seats = serializers.SerializerMethodField()
-    furniture = FurnitureSerializer(many=True, read_only=True)
-
-    class Meta:
-        model = Room
-        fields = ['id', 'seats', 'occupied_seats', 'available_seats', 'gender', 'furniture']
-
-    def get_available_seats(self, obj):
-        return obj.available_seats
-
 class CheckInInformationSerializer(serializers.ModelSerializer):
     class Meta:
         model = CheckInInformation
@@ -51,6 +34,26 @@ class CheckInInformationSerializer(serializers.ModelSerializer):
         if room.occupied_seats >= room.seats:
             raise serializers.ValidationError("В комнате нет свободных мест")
         return room
+        
+class FurnitureSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Furniture
+        fields = ['id', 'type', 'room']
+        read_only_fields = ['id']
+
+class RoomSerializer(serializers.ModelSerializer):
+    available_seats = serializers.SerializerMethodField()
+    furniture = FurnitureSerializer(many=True, read_only=True)
+    check_ins = CheckInInformationSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Room
+        fields = ['id', 'seats', 'occupied_seats', 'available_seats', 'gender', 'furniture', 'check_ins']
+
+    def get_available_seats(self, obj):
+        return obj.available_seats
+
+
 
 class OccupancyReportSerializer(serializers.Serializer):
     total_rooms = serializers.IntegerField()
