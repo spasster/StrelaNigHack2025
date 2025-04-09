@@ -62,6 +62,12 @@
             class="bg-custom-card border-none font-paratype">
       <div class="field">
         <span class="p-float-label">
+          <InputNumber id="number" v-model="roomForm.number" :min="100" :max="399" :step="1" class="w-full" />
+          <label class="text-white/50" for="number">Номер комнаты</label>
+        </span>
+      </div>
+      <div class="field mt-4">
+        <span class="p-float-label">
           <InputNumber id="seats" v-model="roomForm.seats" :min="1" class="w-full" />
           <label class="text-white/50" for="seats">Количество мест</label>
         </span>
@@ -187,6 +193,7 @@ const furnitureFilters = ref({
 })
 
 const roomForm = ref({
+  number: null,
   seats: 1,
   gender: 'M'
 })
@@ -320,7 +327,11 @@ const loadRoomDetails = async (roomId) => {
 const closeRoomDialog = () => {
   showCreateRoomDialog.value = false
   editingRoom.value = null
-  roomForm.value = { seats: 1, gender: 'M' }
+  roomForm.value = {
+    number: null,
+    seats: 1,
+    gender: 'M'
+  }
 }
 
 onMounted(() => {
