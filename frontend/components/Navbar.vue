@@ -165,6 +165,11 @@ const profileMenuItems = computed(() => [
     command: () => navigateTo('/profile')
   },
   {
+    label: 'Админ-панель',
+    icon: 'pi pi-cog',
+    command: () => navigateTo('/admin')
+  },
+  {
     label: 'Выйти',
     icon: 'pi pi-sign-out',
     command: handleLogout
