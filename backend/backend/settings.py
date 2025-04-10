@@ -32,10 +32,9 @@ ALLOWED_HOSTS = ['backend', 'localhost', '127.0.0.1', 'neimark-aparts.ru', 'fron
 CORS_ALLOW_ALL_ORIGINS = False
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOWED_ORIGINS = [
+    "https://neimark-aparts.ru",  # Ваш домен
     "http://localhost:3000",  # Для разработки
     "http://127.0.0.1:3000",  # Для разработки
-    "https://drainwalk.tech",  # Ваш домен
-    "neimark-aparts.ru",  # Ваш домен
 ]
 CORS_ALLOW_METHODS = [
     'DELETE',
