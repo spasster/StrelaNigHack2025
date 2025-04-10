@@ -154,6 +154,7 @@
 
 <script setup lang="ts">
 import { useToast } from 'primevue/usetoast'
+import { useFetch } from '~/composables/useFetch'
 
 const props = defineProps<{
   roomId: number
@@ -162,6 +163,7 @@ const props = defineProps<{
 const emit = defineEmits(['success'])
 const visible = ref(false)
 const toast = useToast()
+const { fetchWithAuth } = useFetch()
 
 const form = reactive({
   name: '',
@@ -230,11 +232,8 @@ const handleSubmit = async () => {
   }
 
   try {
-    const response = await fetch('/api/rooms/check-in/', {
+    const response = await fetchWithAuth('/api/rooms/check-in/', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify({
         room: props.roomId,
         name: form.name,
