@@ -19,6 +19,7 @@ from .views import (
     CheckInInformationAssignView,
     CheckInInformationUnassignView
 )
+from . import views
 
 urlpatterns = [
     path('create/', RoomCreateView.as_view(), name='room-create'),
@@ -39,4 +40,5 @@ urlpatterns = [
     path('check-in/all/', AllCheckInInformationListView.as_view(), name='all-check-ins'),
     path('check-in/assign/', CheckInInformationAssignView.as_view(), name='check-in-assign'),
     path('check-in/unassign/', CheckInInformationUnassignView.as_view(), name='check-in-unassign'),
+    path('check-in/create-with-bill/', views.CreateCheckInWithBillView.as_view(), name='create-check-in-with-bill'),
 ] 

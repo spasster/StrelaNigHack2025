@@ -2,6 +2,7 @@ from django.shortcuts import render
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
 from .models import Room, CheckInInformation, Furniture
 from .serializers import (
     RoomSerializer, 
@@ -13,6 +14,8 @@ from .serializers import (
     CheckInInformationWithoutRoomAndEmailSerializer,
     CheckInInformationAssignSerializer
 )
+from bills.models import Bill
+from bills.serializers import BillSerializer
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from django.db.models import Count, F, Q
@@ -574,3 +577,73 @@ class CheckInInformationWithoutRoomAndEmailCreateView(generics.CreateAPIView):
                 'data': serializer.data
             }, status=status.HTTP_201_CREATED, headers=headers)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class CreateCheckInWithBillView(APIView):
+    """
+    Создание информации о заселении и счета на аренду.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        # 1. Сначала создаем счет на аренду, чтобы получить дату окончания
+        subscription_type = request.data.get('subscription_period')
+        amount = request.data.get('amount')
+        rent_start_date = datetime.strptime(request.data.get('check_in_date'), '%Y-%m-%d').date()
+
+        # Рассчитываем дату окончания аренды
+        if subscription_type == 'MONTH':
+            rent_end_date = rent_start_date + timedelta(days=30)
+        elif subscription_type == 'SEMESTER':
+            rent_end_date = rent_start_date + timedelta(days=180)
+        elif subscription_type == 'YEAR':
+            rent_end_date = rent_start_date + timedelta(days=365)
+        else:
+            return Response(
+                {"error": "Неверный период подписки"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # 2. Создаем CheckInInformation с уже известной датой окончания
+        check_in_data = {
+            'room': request.data.get('room'),
+            'name': request.data.get('name'),
+            'surname': request.data.get('surname'),
+            'fathername': request.data.get('fathername'),
+            'phone_number': request.data.get('phone_number'),
+            'birth_date': request.data.get('birth_date'),
+            'university': request.data.get('university'),
+            'faculty': request.data.get('faculty'),
+            'course': request.data.get('course'),
+            'email': request.user.email,
+            'check_in_date': datetime.strptime(request.data.get('check_in_date'), '%Y-%m-%d'),
+            'check_out_date': datetime.combine(rent_end_date, datetime.min.time())
+        }
+
+        check_in_serializer = CheckInInformationSerializer(data=check_in_data)
+        if not check_in_serializer.is_valid():
+            return Response(check_in_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        check_in = check_in_serializer.save()
+
+        # 3. Создаем счет на аренду
+        bill_data = {
+            'resident': check_in.id,
+            'amount': amount,
+            'due_date': datetime.now() + timedelta(days=7),
+            'bill_type': 'RENT',
+            'subscription_period': subscription_type,
+            'rent_start_date': rent_start_date,
+            'rent_end_date': rent_end_date
+        }
+
+        bill_serializer = BillSerializer(data=bill_data)
+        if not bill_serializer.is_valid():
+            check_in.delete()  # Откатываем создание CheckInInformation
+            return Response(bill_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        bill = bill_serializer.save()
+
+        return Response({
+            'check_in': CheckInInformationSerializer(check_in).data,
+            'bill': BillSerializer(bill).data
+        }, status=status.HTTP_201_CREATED)
