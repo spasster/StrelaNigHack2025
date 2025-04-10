@@ -11,13 +11,13 @@ ENV NUXT_PUBLIC_API_URL=${NUXT_PUBLIC_API_URL}
 WORKDIR /app
 
 # Копируем package.json и package-lock.json
-COPY frontend/package.json frontend/package-lock.json ./
+COPY package.json package-lock.json ./
 
 # Устанавливаем зависимости с помощью npm
 RUN npm install
 
 # Копируем весь код
-COPY frontend/ .
+COPY . .
 
 # Собираем Nuxt
 RUN npm run build
