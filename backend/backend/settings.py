@@ -35,6 +35,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  # Для разработки
     "http://127.0.0.1:3000",  # Для разработки
     "https://drainwalk.tech",  # Ваш домен
+    "neimark-aparts.ru",  # Ваш домен
 ]
 
 CORS_ALLOW_METHODS = [
