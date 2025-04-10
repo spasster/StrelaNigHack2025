@@ -118,11 +118,8 @@ DATABASES = {
         'NAME': 'Strela2025',
         'USER': 'postgres',
         'PASSWORD': 'sex123',
-        'HOST': 'localhost',
-        'PORT': '5432',
-        'OPTIONS': {
-            'client_encoding': 'UTF8',
-        }
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': '5432'
     }
 }
 
