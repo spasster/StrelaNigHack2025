@@ -1,11 +1,29 @@
-FROM ode:22-alpine
+# Используем официальный образ для Node.js
+FROM node:22-alpine
 
-ENV APP_ROOT /web
+# Определяем аргумент для API URL
+ARG NUXT_PUBLIC_API_URL
 
-WORKDIR ${APP_ROOT}
-ADD . ${APP_ROOT}
+# Делаем его переменной окружения внутри контейнера
+ENV NUXT_PUBLIC_API_URL=${NUXT_PUBLIC_API_URL}
 
-RUN npm ci
+# Рабочая директория
+WORKDIR /app
 
+# Копируем package.json и package-lock.json
+COPY frontend/package.json frontend/package-lock.json ./
+
+# Устанавливаем зависимости с помощью npm
+RUN npm install
+
+# Копируем весь код
+COPY frontend/ .
+
+# Собираем Nuxt
 RUN npm run build
-CMD node .output/server/index.mjs
+
+# Открываем порт для приложения
+EXPOSE 3000
+
+# Запускаем Nuxt
+CMD ["npm", "preview"]
