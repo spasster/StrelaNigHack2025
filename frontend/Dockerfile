@@ -22,7 +22,7 @@ RUN apk add --no-cache nginx
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Копируем собранное приложение в директорию nginx
-RUN cp -r build/* /usr/share/nginx/html/
+RUN cp -r .output/public/* /usr/share/nginx/html/
 
 # Открываем порт
 EXPOSE 80
