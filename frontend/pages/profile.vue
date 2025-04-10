@@ -336,7 +336,7 @@ const paymentHistory = ref<Payment[]>([])
 // Генерация QR кода
 const qrCodeUrl = computed(() => {
   const accessToken = authStore.accessToken;
-  return `https://neimark-aparts.ru/check/${accessToken}`;
+  return `https://neimarl-aparts/check/${accessToken}`;
 });
 
 // Форматирование даты
@@ -438,7 +438,7 @@ const createSubscription = async (period: string) => {
     if (response.ok) {
       const data = await response.json()
       // Перенаправляем на страницу оплаты
-      window.location.href = data.payment_url
+      window.location.href = data.bill.payment_url
     } else {
       throw new Error('Ошибка при создании подписки')
     }
