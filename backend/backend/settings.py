@@ -37,7 +37,6 @@ CORS_ALLOWED_ORIGINS = [
     "https://drainwalk.tech",  # Ваш домен
     "neimark-aparts.ru",  # Ваш домен
 ]
-
 CORS_ALLOW_METHODS = [
     'DELETE',
     'GET',

@@ -336,7 +336,7 @@ const paymentHistory = ref<Payment[]>([])
 // Генерация QR кода
 const qrCodeUrl = computed(() => {
   const accessToken = authStore.accessToken;
-  return `https://neimarl-aparts/check/${accessToken}`;
+  return `https://neimark-aparts.ru/check/${accessToken}`;
 });
 
 // Форматирование даты
@@ -423,7 +423,7 @@ const createSubscription = async (period: string) => {
     const today = new Date()
     const rentStartDate = today.toISOString().split('T')[0]
 
-    const response = await fetchWithAuth('/api/rooms/check-in/create-with-bill/', {
+    const response = await fetchWithAuth('/api/bills/rent/create/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

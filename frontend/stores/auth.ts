@@ -95,7 +95,7 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    async fetchUserData() {
+    async fetchUserData(): Promise<{ success: boolean; data?: UserData; message?: string }> {
       try {
         const response = await fetch('/api/auth/profile/', {
           method: 'GET',
@@ -109,6 +109,37 @@ export const useAuthStore = defineStore('auth', {
           const userData = await response.json()
           this.userData = userData
           return { success: true, data: userData }
+        } else if (response.status === 401) {
+          // Если токен истек, пробуем обновить его
+          const refreshResponse = await fetch('/api/auth/token/refresh/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ refresh: this.refreshToken })
+          })
+
+          if (refreshResponse.ok) {
+            const refreshData = await refreshResponse.json()
+            
+            // Обновляем токены в cookies
+            const accessCookie = useCookie('access_token', {
+              maxAge: 7200,
+              secure: true,
+              sameSite: 'strict'
+            })
+            accessCookie.value = refreshData.access
+            
+            // Обновляем токен в store
+            this.accessToken = refreshData.access
+            
+            // Повторяем запрос данных пользователя
+            return this.fetchUserData()
+          } else {
+            // Если не удалось обновить токен, разлогиниваем пользователя
+            this.logout()
+            return { success: false, message: 'Сессия истекла. Пожалуйста, войдите снова.' }
+          }
         } else {
           throw new Error('Ошибка при получении данных пользователя')
         }
