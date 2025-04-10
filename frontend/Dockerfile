@@ -26,4 +26,4 @@ RUN npm run build
 EXPOSE 3000
 
 # Запускаем Nuxt
-CMD ["npm", "preview"]
+CMD ["npm", "run", "preview"]
