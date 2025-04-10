@@ -22,10 +22,11 @@ RUN apk add --no-cache nginx
 RUN mkdir -p /usr/share/nginx/html && \
     mkdir -p /var/log/nginx && \
     mkdir -p /var/cache/nginx && \
-    mkdir -p /etc/nginx/conf.d
+    mkdir -p /var/run && \
+    mkdir -p /etc/nginx
 
 # Копируем конфигурацию Nginx
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/nginx.conf
 
 # Копируем собранное приложение в директорию nginx
 RUN cp -r .output/public/* /usr/share/nginx/html/
