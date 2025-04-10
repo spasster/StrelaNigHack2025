@@ -336,7 +336,7 @@ const paymentHistory = ref<Payment[]>([])
 // Генерация QR кода
 const qrCodeUrl = computed(() => {
   const accessToken = authStore.accessToken;
-  return `https://neimarl-aparts/check/${accessToken}`;
+  return `https://neimark-aparts.ru/check/${accessToken}`;
 });
 
 // Форматирование даты
