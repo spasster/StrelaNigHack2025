@@ -18,6 +18,12 @@ RUN npm run build
 # Установка nginx
 RUN apk add --no-cache nginx
 
+# Создаем необходимые директории для nginx
+RUN mkdir -p /usr/share/nginx/html && \
+    mkdir -p /var/log/nginx && \
+    mkdir -p /var/cache/nginx && \
+    mkdir -p /etc/nginx/conf.d
+
 # Копируем конфигурацию Nginx
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
