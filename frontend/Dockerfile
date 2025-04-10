@@ -15,33 +15,28 @@ COPY . .
 # Собираем приложение
 RUN npm run build
 
-# Установка nginx
-RUN apk add --no-cache nginx
+# Установка nginx и необходимых инструментов
+RUN apk add --no-cache nginx net-tools
 
 # Создаем необходимые директории для nginx
 RUN mkdir -p /usr/share/nginx/html && \
     mkdir -p /var/log/nginx && \
-    mkdir -p /var/cache/nginx && \
     mkdir -p /var/run && \
-    mkdir -p /etc/nginx && \
-    touch /var/log/nginx/access.log && \
-    touch /var/log/nginx/error.log && \
-    touch /var/log/nginx/server.access.log && \
-    touch /var/log/nginx/server.error.log && \
-    touch /var/log/nginx/static.access.log && \
-    touch /var/log/nginx/spa.access.log && \
-    touch /var/log/nginx/denied.access.log && \
-    chown -R nginx:nginx /var/log/nginx && \
-    chown -R nginx:nginx /var/cache/nginx && \
-    chown -R nginx:nginx /var/run && \
-    chown -R nginx:nginx /usr/share/nginx/html
+    mkdir -p /etc/nginx
 
 # Копируем конфигурацию Nginx
 COPY nginx.conf /etc/nginx/nginx.conf
 
 # Копируем собранное приложение в директорию nginx
 RUN cp -r .output/public/* /usr/share/nginx/html/ && \
+    chmod -R 755 /usr/share/nginx/html && \
     chown -R nginx:nginx /usr/share/nginx/html
+
+# Создаем и настраиваем логи
+RUN touch /var/log/nginx/access.log && \
+    touch /var/log/nginx/error.log && \
+    chmod 644 /var/log/nginx/*.log && \
+    chown -R nginx:nginx /var/log/nginx
 
 # Открываем порт
 EXPOSE 80
