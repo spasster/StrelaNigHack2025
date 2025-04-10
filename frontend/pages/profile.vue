@@ -56,6 +56,121 @@
             </div>
           </div>
         </div>
+
+        <!-- Секция подписок и оплат -->
+        <div class="mt-8">
+          <div class="bg-custom-card p-6 rounded-lg shadow-lg">
+            <h2 class="text-xl font-semibold text-white mb-6">Подписки и оплаты</h2>
+            
+            <!-- Активные подписки -->
+            <div class="mb-6">
+              <h3 class="text-lg font-medium text-white mb-4">Активные подписки</h3>
+              <div v-if="activeSubscriptions.length" class="space-y-4">
+                <div v-for="subscription in activeSubscriptions" :key="subscription.id" 
+                     class="bg-gray-700 p-4 rounded-lg">
+                  <div class="flex justify-between items-center">
+                    <div>
+                      <p class="text-white font-medium">{{ subscription.bill_type === 'SUBSCRIPTION' ? 'Подписка' : 'Аренда' }}</p>
+                      <p class="text-white/60 text-sm">Срок: {{ formatDate(subscription.rent_start_date) }} - {{ formatDate(subscription.rent_end_date) }}</p>
+                    </div>
+                    <div class="text-right">
+                      <p class="text-white font-medium">{{ subscription.amount }} ₽</p>
+                      <p class="text-sm" :class="{
+                        'text-green-400': subscription.status === 'PAID',
+                        'text-yellow-400': subscription.status === 'PENDING',
+                        'text-red-400': subscription.status === 'OVERDUE'
+                      }">
+                        {{ getStatusText(subscription.status) }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <p v-else class="text-white/60">Нет активных подписок</p>
+            </div>
+
+            <!-- Продление подписки -->
+            <div class="mb-6">
+              <h3 class="text-lg font-medium text-white mb-4">Продлить подписку</h3>
+              <div class="space-y-4">
+                <div class="bg-gray-700 p-4 rounded-lg">
+                  <div class="flex justify-between items-center mb-4">
+                    <div>
+                      <p class="text-white font-medium">Месячная подписка</p>
+                      <p class="text-white/60 text-sm">Доступ ко всем функциям</p>
+                    </div>
+                    <p class="text-white font-medium">5000 ₽</p>
+                  </div>
+                  <CustomButton 
+                    class="w-full"
+                    @click="createSubscription('MONTH')"
+                  >
+                    Продлить на месяц
+                  </CustomButton>
+                </div>
+
+                <div class="bg-gray-700 p-4 rounded-lg">
+                  <div class="flex justify-between items-center mb-4">
+                    <div>
+                      <p class="text-white font-medium">Семестровая подписка</p>
+                      <p class="text-white/60 text-sm">Доступ ко всем функциям</p>
+                    </div>
+                    <p class="text-white font-medium">25000 ₽</p>
+                  </div>
+                  <CustomButton 
+                    class="w-full"
+                    @click="createSubscription('SEMESTER')"
+                  >
+                    Продлить на семестр
+                  </CustomButton>
+                </div>
+
+                <div class="bg-gray-700 p-4 rounded-lg">
+                  <div class="flex justify-between items-center mb-4">
+                    <div>
+                      <p class="text-white font-medium">Годовая подписка</p>
+                      <p class="text-white/60 text-sm">Доступ ко всем функциям</p>
+                    </div>
+                    <p class="text-white font-medium">45000 ₽</p>
+                  </div>
+                  <CustomButton 
+                    class="w-full"
+                    @click="createSubscription('YEAR')"
+                  >
+                    Продлить на год
+                  </CustomButton>
+                </div>
+              </div>
+            </div>
+
+            <!-- История платежей -->
+            <div>
+              <h3 class="text-lg font-medium text-white mb-4">История платежей</h3>
+              <div v-if="paymentHistory.length" class="space-y-4">
+                <div v-for="payment in paymentHistory" :key="payment.id" 
+                     class="bg-gray-700 p-4 rounded-lg">
+                  <div class="flex justify-between items-center">
+                    <div>
+                      <p class="text-white font-medium">{{ formatDate(payment.payment_date) }}</p>
+                      <p class="text-white/60 text-sm">{{ getPaymentMethodText(payment.payment_method) }}</p>
+                    </div>
+                    <div class="text-right">
+                      <p class="text-white font-medium">{{ payment.amount }} ₽</p>
+                      <p class="text-sm" :class="{
+                        'text-green-400': payment.status === 'SUCCESS',
+                        'text-yellow-400': payment.status === 'PENDING',
+                        'text-red-400': payment.status === 'FAILED'
+                      }">
+                        {{ getPaymentStatusText(payment.status) }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <p v-else class="text-white/60">Нет истории платежей</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Информация о пользователе -->
@@ -198,9 +313,30 @@ const userData = ref({
 const authStore = useAuthStore();
 const { fetchWithAuth } = useFetch();
 
+interface Subscription {
+  id: number;
+  bill_type: 'SUBSCRIPTION' | 'RENT';
+  rent_start_date: string;
+  rent_end_date: string;
+  amount: string;
+  status: 'PAID' | 'PENDING' | 'OVERDUE' | 'CANCELLED';
+}
+
+interface Payment {
+  id: number;
+  payment_date: string;
+  payment_method: 'CARD' | 'CASH' | 'TRANSFER';
+  amount: string;
+  status: 'SUCCESS' | 'PENDING' | 'FAILED';
+}
+
+const activeSubscriptions = ref<Subscription[]>([])
+const paymentHistory = ref<Payment[]>([])
+
 // Генерация QR кода
 const qrCodeUrl = computed(() => {
-  return `https://imgur.com/gc9racx`;
+  const accessToken = authStore.accessToken;
+  return `https://neimarl-aparts/check/${accessToken}`;
 });
 
 // Форматирование даты
@@ -246,6 +382,105 @@ const loadUserData = async () => {
   }
 };
 
+// Загрузка данных о подписках и платежах
+const loadBillsData = async () => {
+  try {
+    // Загрузка активных подписок
+    const subscriptionsResponse = await fetchWithAuth('/api/bills/bills/')
+    if (subscriptionsResponse.ok) {
+      const data = await subscriptionsResponse.json()
+      activeSubscriptions.value = data.filter((bill: Subscription) => 
+        bill.bill_type === 'SUBSCRIPTION' && 
+        bill.status !== 'CANCELLED'
+      )
+    }
+
+    // Загрузка истории платежей
+    const paymentsResponse = await fetchWithAuth('/api/bills/payments/')
+    if (paymentsResponse.ok) {
+      paymentHistory.value = await paymentsResponse.json()
+    }
+  } catch (error) {
+    console.error('Ошибка загрузки данных о подписках и платежах:', error)
+    toast.add({
+      severity: 'error',
+      summary: 'Ошибка',
+      detail: 'Не удалось загрузить данные о подписках и платежах',
+      life: 3000,
+    })
+  }
+}
+
+// Создание новой подписки
+const createSubscription = async (period: string) => {
+  try {
+    // Определяем сумму в зависимости от периода
+    const amount = period === 'MONTH' ? '15000.00' : 
+                  period === 'SEMESTER' ? '25000.00' : 
+                  '45000.00'
+
+    // Получаем текущую дату
+    const today = new Date()
+    const rentStartDate = today.toISOString().split('T')[0]
+
+    const response = await fetchWithAuth('/api/rooms/check-in/create-with-bill/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        subscription_period: period,
+        amount: amount,
+        rent_start_date: rentStartDate
+      })
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      // Перенаправляем на страницу оплаты
+      window.location.href = data.payment_url
+    } else {
+      throw new Error('Ошибка при создании подписки')
+    }
+  } catch (error) {
+    console.error('Ошибка при создании подписки:', error)
+    toast.add({
+      severity: 'error',
+      summary: 'Ошибка',
+      detail: 'Не удалось создать подписку',
+      life: 3000,
+    })
+  }
+}
+
+// Вспомогательные функции для отображения статусов
+const getStatusText = (status: string) => {
+  switch (status) {
+    case 'PAID': return 'Оплачено'
+    case 'PENDING': return 'Ожидает оплаты'
+    case 'OVERDUE': return 'Просрочено'
+    default: return status
+  }
+}
+
+const getPaymentMethodText = (method: string) => {
+  switch (method) {
+    case 'CARD': return 'Банковская карта'
+    case 'CASH': return 'Наличные'
+    case 'TRANSFER': return 'Банковский перевод'
+    default: return method
+  }
+}
+
+const getPaymentStatusText = (status: string) => {
+  switch (status) {
+    case 'SUCCESS': return 'Успешно'
+    case 'PENDING': return 'В обработке'
+    case 'FAILED': return 'Ошибка'
+    default: return status
+  }
+}
+
 // Проверяем мобильное устройство
 onMounted(() => {
   isMobile.value = window.innerWidth <= 768;
@@ -253,6 +488,7 @@ onMounted(() => {
     isMobile.value = window.innerWidth <= 768;
   });
   loadUserData();
+  loadBillsData();
 });
 
 // Обработчик клика для мобильных устройств

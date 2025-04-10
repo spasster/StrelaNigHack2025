@@ -84,6 +84,15 @@
         </span>
       </div>
 
+      <div class="field">
+        <CloudflareTurnstile
+          v-if="visible"
+          key="register-captcha"
+          site-key="0x4AAAAAAAi8lBfwGM44vEO0"
+          @verify="handleVerify"
+        />
+      </div>
+
       <div class="text-center text-sm">
         <span class="text-white/60">Уже есть аккаунт?</span>
         <a href="#" class="text-primary hover:text-primary/80 ml-1" @click.prevent="switchToLogin">Войдите</a>
@@ -108,18 +117,21 @@ const authStore = useAuthStore()
 const toast = useToast()
 const emit = defineEmits(['switch-to-login'])
 
+// Показываем капчу только когда диалог видим
+const showCaptcha = computed(() => visible.value)
+
 const form = reactive({
   firstName: '',
   lastName: '',
   birthDate: null,
   email: '',
   password: '',
-  password2: ''
+  password2: '',
+  cfToken: ''
 })
 
-const switchToLogin = () => {
-  visible.value = false
-  emit('switch-to-login')
+const handleVerify = (token: string) => {
+  form.cfToken = token
 }
 
 const handleSubmit = async () => {
@@ -145,6 +157,17 @@ const handleSubmit = async () => {
     return
   }
 
+  // Проверяем капчу
+  if (!form.cfToken) {
+    toast.add({
+      severity: 'error',
+      summary: 'Ошибка',
+      detail: 'Пожалуйста, пройдите проверку капчи',
+      life: 3000
+    })
+    return
+  }
+
   try {
     const result = await authStore.register({
       firstName: form.firstName,
@@ -152,7 +175,8 @@ const handleSubmit = async () => {
       birthDate: form.birthDate,
       email: form.email,
       password: form.password,
-      password2: form.password2
+      password2: form.password2,
+      cfToken: form.cfToken
     })
 
     if (result.success) {
@@ -170,6 +194,7 @@ const handleSubmit = async () => {
       form.email = ''
       form.password = ''
       form.password2 = ''
+      form.cfToken = ''
     } else {
       toast.add({
         severity: 'error',
@@ -188,10 +213,19 @@ const handleSubmit = async () => {
   }
 }
 
+const switchToLogin = () => {
+  visible.value = false
+  form.cfToken = ''
+  emit('switch-to-login')
+}
+
 // Экспортируем метод для открытия диалога
 defineExpose({
   show: () => visible.value = true,
-  hide: () => visible.value = false
+  hide: () => {
+    visible.value = false
+    form.cfToken = ''
+  }
 })
 </script>
 

@@ -114,5 +114,22 @@ export default defineNuxtConfig({
     '~/assets/css/fonts.css',
     '~/assets/css/main.css',
     '~/assets/css/tailwind.css'
-  ]
+  ],
+  app: {
+    head: {
+      title: 'StrelaHack',
+      meta: [
+        { charset: 'utf-8' },
+        { name: 'viewport', content: 'width=device-width, initial-scale=1' },
+        { hid: 'description', name: 'description', content: '' }
+      ],
+      script: [
+        {
+          src: 'https://challenges.cloudflare.com/turnstile/v0/api.js',
+          async: true,
+          defer: true
+        }
+      ]
+    }
+  }
 })

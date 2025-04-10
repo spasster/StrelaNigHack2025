@@ -5,7 +5,8 @@ const activeTab = ref('checkins')
 const tabs = [
   { id: 'checkins', label: 'Заселения', icon: 'pi pi-home' },
   { id: 'rooms', label: 'Комнаты', icon: 'pi pi-building' },
-  { id: 'reports', label: 'Отчеты', icon: 'pi pi-chart-bar' }
+  { id: 'reports', label: 'Отчеты', icon: 'pi pi-chart-bar' },
+  { id: 'appeals', label: 'Обращения', icon: 'pi pi-comments' }
 ]
 
 const activeTabLabel = computed(() => {
@@ -61,6 +62,7 @@ const activeTabIcon = computed(() => {
                 <CheckInManager v-if="activeTab === 'checkins'" />
                 <RoomsManager v-if="activeTab === 'rooms'" />
                 <ReportsManager v-if="activeTab === 'reports'" />
+                <AppealManager v-if="activeTab === 'appeals'" />
               </div>
             </template>
           </Card>
