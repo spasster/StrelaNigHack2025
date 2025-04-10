@@ -423,7 +423,7 @@ const createSubscription = async (period: string) => {
     const today = new Date()
     const rentStartDate = today.toISOString().split('T')[0]
 
-    const response = await fetchWithAuth('/api/rooms/check-in/create-with-bill/', {
+    const response = await fetchWithAuth('/api/bills/rent/create/', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

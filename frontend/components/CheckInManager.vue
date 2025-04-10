@@ -63,8 +63,18 @@
       <div class="grid grid-cols-2 gap-6">
         <div class="field">
           <span class="p-float-label">
-            <SelectButton id="room" v-model="checkInForm.room" :options="availableRooms" 
-                         optionLabel="id" optionValue="id" class="w-full" />
+            <Dropdown 
+              id="room" 
+              v-model="checkInForm.room" 
+              :options="availableRooms" 
+              optionLabel="name"
+              optionValue="id"
+              placeholder="Выберите комнату"
+              class="w-full"
+              :filter="true"
+              filterPlaceholder="Поиск комнаты"
+              :showClear="true"
+            />
             <label class="text-white/50" for="room">Комната</label>
           </span>
         </div>
@@ -206,7 +216,11 @@ const loadAvailableRooms = async () => {
   try {
     const response = await fetchWithAuth('/api/rooms/list/')
     const data = await response.json()
-    availableRooms.value = data
+    // Добавляем поле name для отображения в выпадающем списке
+    availableRooms.value = data.map(room => ({
+      ...room,
+      name: `Комната ${room.id} (${room.type})`
+    }))
   } catch (error) {
     console.error('Ошибка при загрузке комнат:', error)
     toast.add({
