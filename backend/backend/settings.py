@@ -26,7 +26,7 @@ SECRET_KEY = 'django-insecure--_oiw04(h=(lnhl7vt8bz*prwh^3b1r&52-zp-yl0c=*^ft%xz
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-ALLOWED_HOSTS = ['backend', 'localhost', '127.0.0.1', 'drainwalk.tech', 'frontend']
+ALLOWED_HOSTS = ['backend', 'localhost', '127.0.0.1', 'neimark-aparts.ru', 'frontend']
 
 # CORS settings
 CORS_ALLOW_ALL_ORIGINS = False

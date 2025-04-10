@@ -78,19 +78,40 @@ class CreateRentBillView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # Создаем счет сразу как оплаченный
         bill_data = {
             'resident': check_in.id,
             'amount': amount,
             'due_date': datetime.now() + timedelta(days=7),
             'bill_type': 'RENT',
             'subscription_period': subscription_type,
-            'rent_start_date': rent_start_date
+            'rent_start_date': rent_start_date,
+            'is_paid': True,
+            'paid_date': datetime.now(),
+            'status': 'PAID'
         }
 
         serializer = BillSerializer(data=bill_data)
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            bill = serializer.save()
+            
+            # Создаем запись о платеже
+            payment_data = {
+                'bill': bill.id,
+                'amount': amount,
+                'payment_method': 'CARD',
+                'transaction_id': f'test_payment_{bill.id}',
+                'status': 'SUCCESS'
+            }
+            
+            payment_serializer = PaymentSerializer(data=payment_data)
+            if payment_serializer.is_valid():
+                payment_serializer.save()
+            
+            return Response({
+                'bill': BillSerializer(bill).data,
+                'payment': payment_serializer.data if payment_serializer.is_valid() else None
+            }, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class CreatePaymentView(APIView):
