@@ -1,13 +1,14 @@
-# Этап сборки
-FROM node:18-alpine
+# Шаг сборки приложения
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
 # Копируем файлы зависимостей
 COPY package*.json ./
+COPY .npmrc* ./
 
 # Устанавливаем зависимости
-RUN npm install
+RUN npm install --frozen-lockfile
 
 # Копируем исходный код
 COPY . .
@@ -15,31 +16,17 @@ COPY . .
 # Собираем приложение
 RUN npm run build
 
-# Установка nginx и необходимых инструментов
-RUN apk add --no-cache nginx net-tools
+# Финальный образ с Nginx
+FROM nginx:alpine
 
-# Создаем необходимые директории для nginx
-RUN mkdir -p /usr/share/nginx/html && \
-    mkdir -p /var/log/nginx && \
-    mkdir -p /var/run && \
-    mkdir -p /etc/nginx
+# Копируем собранное приложение из builder
+COPY --from=builder /app/.output /usr/share/nginx/html
 
 # Копируем конфигурацию Nginx
-COPY nginx.conf /etc/nginx/nginx.conf
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Копируем собранное приложение в директорию nginx
-RUN cp -r .output/public/* /usr/share/nginx/html/ && \
-    chmod -R 755 /usr/share/nginx/html && \
-    chown -R nginx:nginx /usr/share/nginx/html
-
-# Создаем и настраиваем логи
-RUN touch /var/log/nginx/access.log && \
-    touch /var/log/nginx/error.log && \
-    chmod 644 /var/log/nginx/*.log && \
-    chown -R nginx:nginx /var/log/nginx
-
-# Открываем порт
+# Открываем порт 80
 EXPOSE 80
 
 # Запускаем Nginx
-CMD ["nginx", "-g", "daemon off;"] 
+CMD ["nginx", "-g", "daemon off;"]
