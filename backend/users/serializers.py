@@ -89,8 +89,26 @@ class CustomTokenRefreshSerializer(TokenRefreshSerializer):
         return data
 
 class UserProfileSerializer(serializers.ModelSerializer):
+    is_admin = serializers.SerializerMethodField()
+
     class Meta:
         model = CheckInInformation
         fields = ('name', 'surname', 'fathername', 'phone_number', 
                  'birth_date', 'university', 'faculty', 'course', 
-                 'email', 'check_in_date', 'check_out_date', 'room') 
+                 'email', 'check_in_date', 'check_out_date', 'room',
+                 'is_admin')
+
+    def get_is_admin(self, obj):
+        user = self.context['request'].user
+        return user.is_admin
+
+class UserProfileWithAdminSerializer(serializers.ModelSerializer):
+    # This serializer is not provided in the original file or the code block
+    # It's assumed to exist as it's called in the UserProfileSerializer
+    pass
+
+    # Add any necessary fields or methods for this serializer
+    # For example, you might want to add a method to get the admin status
+    def get_is_admin(self, obj):
+        user = self.context['request'].user
+        return user.is_admin 

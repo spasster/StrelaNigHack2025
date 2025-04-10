@@ -7,16 +7,21 @@ class BillSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Bill
-        fields = ['id', 'resident', 'amount', 'created_date', 'due_date', 
-                 'is_paid', 'paid_date', 'bill_type', 'status', 'payment_url']
+        fields = '__all__'
+        read_only_fields = ('created_date', 'status', 'is_paid', 'paid_date')
 
     def get_payment_url(self, obj):
         if not obj.is_paid:
             return generate_payment_link(number=obj.id)
         return None
 
+    def validate(self, data):
+        if data.get('bill_type') == 'SUBSCRIPTION' and not data.get('subscription_period'):
+            raise serializers.ValidationError("Для подписки необходимо указать период")
+        return data
+
 class PaymentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Payment
-        fields = ['id', 'bill', 'amount', 'payment_date', 
-                 'payment_method', 'transaction_id', 'status'] 
+        fields = '__all__'
+        read_only_fields = ('payment_date', 'status') 

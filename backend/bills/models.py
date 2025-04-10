@@ -8,17 +8,26 @@ class Bill(models.Model):
     due_date = models.DateTimeField()
     is_paid = models.BooleanField(default=False)
     paid_date = models.DateTimeField(null=True, blank=True)
-    bill_type = models.CharField(max_length=50, choices=[
+    bill_type = models.CharField(choices=[
         ('RENT', 'Аренда'),
         ('UTILITIES', 'Коммунальные услуги'),
+        ('SUBSCRIPTION', 'Подписка'),
         ('OTHER', 'Прочее')
     ])
+    subscription_period = models.CharField(max_length=20, choices=[
+        ('MONTH', 'Месяц'),
+        ('SEMESTER', 'Семестр'),
+        ('YEAR', 'Год')
+    ], null=True, blank=True)
     status = models.CharField(max_length=20, choices=[
         ('PENDING', 'Ожидает оплаты'),
         ('PAID', 'Оплачен'),
         ('OVERDUE', 'Просрочен'),
         ('CANCELLED', 'Отменён')
     ], default='PENDING')
+
+    def __str__(self):
+        return f"Счет #{self.id} - {self.resident} - {self.amount}"
 
 class Payment(models.Model):
     bill = models.ForeignKey(Bill, on_delete=models.CASCADE)
@@ -35,3 +44,6 @@ class Payment(models.Model):
         ('PENDING', 'В обработке'),
         ('FAILED', 'Ошибка')
     ])
+
+    def __str__(self):
+        return f"Платеж #{self.id} - {self.bill} - {self.amount}"

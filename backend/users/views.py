@@ -58,3 +58,8 @@ class UserProfileView(generics.RetrieveAPIView):
 
     def get_object(self):
         return CheckInInformation.objects.get(email=self.request.user.email)
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context

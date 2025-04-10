@@ -1,8 +1,9 @@
 from django.urls import path
-from .views import BillListView, BillDetailView, PaymentListView
+from . import views
 
 urlpatterns = [
-    path('', BillListView.as_view(), name='bill-list'),
-    path('bills/<int:pk>/', BillDetailView.as_view(), name='bill-detail'),
-    path('payments/', PaymentListView.as_view(), name='payment-list'),
+    path('bills/', views.BillListView.as_view(), name='bill-list'),
+    path('bills/<int:pk>/', views.BillDetailView.as_view(), name='bill-detail'),
+    path('payments/', views.PaymentListView.as_view(), name='payment-list'),
+    path('subscriptions/create/', views.CreateSubscriptionView.as_view(), name='create-subscription'),
 ] 
