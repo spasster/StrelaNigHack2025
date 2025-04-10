@@ -1,17 +1,45 @@
 version: '3.8'
 
 services:
-  nginx:
-    image: nginx:alpine
+  backend:
+    image: spazter/strela-backend:latest
+    container_name: strela-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - DJANGO_SETTINGS_MODULE=backend.settings
+      - DEBUG=0
+    depends_on:
+      - db
+    networks:
+      - strela-network
+
+  frontend:
+    image: spazter/strela-frontend:latest
+    container_name: strela-frontend
+    restart: unless-stopped
     ports:
       - "80:80"
-    volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d
-    extra_hosts:
-      - "host.docker.internal:host-gateway"  # Для доступа к хосту из контейнера
     networks:
-      - app_network
+      - strela-network
+
+  db:
+    image: postgres:15
+    container_name: strela-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=Strela2025
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=sex123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - strela-network
 
 networks:
-  app_network:
+  strela-network:
     driver: bridge
+
+volumes:
+  postgres_data:
