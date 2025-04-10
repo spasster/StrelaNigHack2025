@@ -158,23 +158,35 @@ const handleLogout = () => {
   navigateTo('/')
 }
 
-const profileMenuItems = computed(() => [
-  {
-    label: 'Профиль',
-    icon: 'pi pi-user',
-    command: () => navigateTo('/profile')
-  },
-  {
-    label: 'Админ-панель',
-    icon: 'pi pi-cog',
-    command: () => navigateTo('/admin')
-  },
-  {
-    label: 'Выйти',
-    icon: 'pi pi-sign-out',
-    command: handleLogout
+const profileMenuItems = computed(() => {
+  const items = [
+    {
+      label: 'Профиль',
+      icon: 'pi pi-user',
+      command: () => navigateTo('/profile')
+    },
+    {
+      label: 'Оставить обращение',
+      icon: 'pi pi-comments',
+      command: () => navigateTo('/appeal')
+    },
+    {
+      label: 'Выйти',
+      icon: 'pi pi-sign-out',
+      command: handleLogout
+    }
+  ]
+
+  if (authStore.userData?.is_admin) {
+    items.splice(2, 0, {
+      label: 'Админ-панель',
+      icon: 'pi pi-cog',
+      command: () => navigateTo('/admin')
+    })
   }
-])
+
+  return items
+})
 </script>
 
 <style scoped>

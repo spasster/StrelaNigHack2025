@@ -52,11 +52,18 @@ const exportReport = async (type) => {
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `report_${type}.pdf`
+      a.download = `report_${type}.xlsx`
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
+      
+      toast.add({
+        severity: 'success',
+        summary: 'Успех',
+        detail: 'Отчет успешно экспортирован',
+        life: 3000
+      })
     } else {
       throw new Error('Ошибка при экспорте отчета')
     }
@@ -82,9 +89,9 @@ onMounted(() => {
       <h2 class="text-2xl font-semibold text-white">Отчеты</h2>
       <div class="flex gap-2">
         <Button 
-          label="Экспорт отчетов" 
+          label="Экспорт всех отчетов" 
           icon="pi pi-download" 
-          @click="exportReport('occupancy')" 
+          @click="exportReport('all')" 
           severity="info"
         />
       </div>
@@ -128,6 +135,19 @@ onMounted(() => {
                 <div class="text-2xl font-bold">{{ (reports.occupancy.occupancy_rate * 100).toFixed(1) }}%</div>
               </div>
             </div>
+            <div v-if="reports.occupancy.rooms_by_gender" class="mt-4">
+              <h3 class="text-lg font-semibold mb-2">Распределение по полу</h3>
+              <div class="grid grid-cols-2 gap-4">
+                <div class="p-4 bg-black/50 rounded-lg">
+                  <div class="text-sm text-gray-400">Мужские комнаты</div>
+                  <div class="text-2xl font-bold">{{ reports.occupancy.rooms_by_gender.M || 0 }}</div>
+                </div>
+                <div class="p-4 bg-black/50 rounded-lg">
+                  <div class="text-sm text-gray-400">Женские комнаты</div>
+                  <div class="text-2xl font-bold">{{ reports.occupancy.rooms_by_gender.F || 0 }}</div>
+                </div>
+              </div>
+            </div>
           </div>
         </template>
       </Card>
@@ -154,6 +174,17 @@ onMounted(() => {
               <div class="p-4 bg-black/50 rounded-lg">
                 <div class="text-sm text-gray-400">Средний срок</div>
                 <div class="text-2xl font-bold">{{ reports.checkin.average_stay_duration.toFixed(1) }} дн.</div>
+              </div>
+            </div>
+            <div v-if="reports.checkin.students_by_duration" class="mt-4">
+              <h3 class="text-lg font-semibold mb-2">Распределение по срокам</h3>
+              <div class="space-y-2">
+                <div v-for="(count, duration) in reports.checkin.students_by_duration" 
+                     :key="duration"
+                     class="p-4 bg-black/50 rounded-lg">
+                  <div class="text-sm text-gray-400">{{ duration }} дней</div>
+                  <div class="text-xl font-bold">{{ count }} студентов</div>
+                </div>
               </div>
             </div>
           </div>

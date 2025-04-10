@@ -1,13 +1,24 @@
 <template>
   <div class="container mx-auto p-4 py-10">
-    <h2 class="text-4xl font-bold text-center mb-8 text-white">Часто задаваемые вопросы</h2>
+    <h2 
+      class="text-4xl font-bold text-center mb-8 text-white transform transition-all duration-1000"
+      :class="{ 'opacity-0 translate-y-10': !isTitleVisible, 'opacity-100 translate-y-0': isTitleVisible }"
+      ref="titleRef"
+    >
+      Часто задаваемые вопросы
+    </h2>
     
     <div class="space-y-4 max-w-3xl mx-auto">
       <div 
         v-for="(item, index) in faqItems" 
         :key="index"
-        class="bg-custom-card rounded-lg overflow-hidden transition-all duration-300"
-        :class="{ 'shadow-lg': activeIndex === index }"
+        class="bg-custom-card rounded-lg overflow-hidden transition-all duration-300 transform"
+        :class="{ 
+          'shadow-lg': activeIndex === index,
+          'opacity-0 translate-y-10': !isVisible[index],
+          'opacity-100 translate-y-0': isVisible[index]
+        }"
+        :ref="el => { if (el) itemRefs[index] = el }"
       >
         <button
           @click="toggleAccordion(index)"
@@ -43,9 +54,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 
 const activeIndex = ref<number | null>(null);
+const isTitleVisible = ref(false);
+const isVisible = ref<boolean[]>([]);
+const titleRef = ref<HTMLElement | null>(null);
+const itemRefs = ref<(HTMLElement | null)[]>([]);
 
 const faqItems = [
   {
@@ -74,9 +89,52 @@ const faqItems = [
   }
 ];
 
+// Инициализация массива видимости
+isVisible.value = new Array(faqItems.length).fill(false);
+
 const toggleAccordion = (index: number) => {
   activeIndex.value = activeIndex.value === index ? null : index;
 };
+
+// Настройка Intersection Observer
+let observer: IntersectionObserver;
+
+onMounted(() => {
+  observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        if (entry.target === titleRef.value) {
+          isTitleVisible.value = true;
+        } else {
+          const index = itemRefs.value.indexOf(entry.target as HTMLElement);
+          if (index !== -1) {
+            // Добавляем задержку для каждого элемента
+            setTimeout(() => {
+              isVisible.value[index] = true;
+            }, index * 150);
+          }
+        }
+      }
+    });
+  }, {
+    threshold: 0.1,
+    rootMargin: '0px 0px -50px 0px'
+  });
+
+  if (titleRef.value) {
+    observer.observe(titleRef.value);
+  }
+
+  itemRefs.value.forEach(ref => {
+    if (ref) observer.observe(ref);
+  });
+});
+
+onUnmounted(() => {
+  if (observer) {
+    observer.disconnect();
+  }
+});
 </script>
 
 <style scoped>
@@ -92,5 +150,10 @@ const toggleAccordion = (index: number) => {
 
 .shadow-lg {
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+.transition-all {
+  transition-property: all;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 </style> 

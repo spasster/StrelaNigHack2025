@@ -485,6 +485,7 @@
 <script setup lang="ts">
 import { useToast } from 'primevue/usetoast';
 import BookingDialog from '~/components/BookingDialog.vue';
+import { useFetch } from '~/composables/useFetch';
 
 // Типы для интеграции с бэкендом
 interface Room {
@@ -510,6 +511,8 @@ type RoomType = 'standard' | 'luxury' | 'suite';
 type RoomStatus = 'free' | 'booked' | 'selected' | 'maintenance';
 
 const toast = useToast();
+
+const { fetchWithAuth } = useFetch();
 
 const stageConfig = reactive({
   width: 1000,
@@ -919,18 +922,15 @@ const calculateY = (number: string): number => {
   const startY = LAYOUT.MARGIN;
   const roomHeight = LAYOUT.ROOM_HEIGHT;
   const margin = LAYOUT.MARGIN;
-  const floorHeight = LAYOUT.FLOOR_HEIGHT;
-  
-  // Базовый отступ для этажа
-  const floorOffset = (floor - 1) * floorHeight;
+  const corridorWidth = LAYOUT.CORRIDOR_WIDTH;
   
   // Определяем, в каком ряду находится комната
   if (roomNum <= 6) {
     // Верхний ряд
-    return startY + floorOffset;
+    return startY + roomHeight + margin + corridorWidth + margin;
   } else {
     // Нижний ряд
-    return startY + floorOffset + roomHeight + margin;
+    return startY + roomHeight + margin + corridorWidth + margin + roomHeight + margin;
   }
 };
 

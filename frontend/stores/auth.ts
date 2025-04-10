@@ -1,10 +1,33 @@
 import { defineStore } from 'pinia'
 import { useCookie } from '#app'
 
+interface UserData {
+  name: string
+  surname: string
+  fathername: string
+  phone_number: string
+  birth_date: string
+  university: string
+  faculty: string
+  course: number
+  email: string
+  check_in_date: string
+  check_out_date: string
+  room: number
+  is_admin: boolean
+}
+
 interface AuthState {
   accessToken: string | null
   refreshToken: string | null
   isAuthenticated: boolean
+  userData: UserData | null
+}
+
+interface LoginData {
+  email: string
+  password: string
+  cfToken: string
 }
 
 interface RegisterData {
@@ -14,24 +37,26 @@ interface RegisterData {
   email: string
   password: string
   password2: string
+  cfToken: string
 }
 
 export const useAuthStore = defineStore('auth', {
   state: (): AuthState => ({
     accessToken: null,
     refreshToken: null,
-    isAuthenticated: false
+    isAuthenticated: false,
+    userData: null
   }),
 
   actions: {
-    async login(email: string, password: string) {
+    async login(email: string, password: string, cfToken: string) {
       try {
         const response = await fetch('/api/auth/login/', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({ email, password })
+          body: JSON.stringify({ email, password, cf_token: cfToken })
         })
 
         const data = await response.json()
@@ -57,6 +82,9 @@ export const useAuthStore = defineStore('auth', {
           this.refreshToken = data.tokens.refresh
           this.isAuthenticated = true
 
+          // Получаем данные пользователя после успешной авторизации
+          await this.fetchUserData()
+
           return { success: true, message: data.message }
         } else {
           return { success: false, message: data.message || 'Ошибка авторизации' }
@@ -67,6 +95,29 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    async fetchUserData() {
+      try {
+        const response = await fetch('/api/auth/profile/', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${this.accessToken}`,
+            'Content-Type': 'application/json'
+          }
+        })
+
+        if (response.ok) {
+          const userData = await response.json()
+          this.userData = userData
+          return { success: true, data: userData }
+        } else {
+          throw new Error('Ошибка при получении данных пользователя')
+        }
+      } catch (error) {
+        console.error('Ошибка при получении данных пользователя:', error)
+        return { success: false, message: 'Не удалось получить данные пользователя' }
+      }
+    },
+
     async register(data: RegisterData) {
       try {
         const response = await fetch('/api/auth/register/', {
@@ -74,14 +125,18 @@ export const useAuthStore = defineStore('auth', {
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify(data)
+          body: JSON.stringify({
+            email: data.email,
+            password: data.password,
+            password2: data.password2,
+            cf_token: data.cfToken
+          })
         })
 
         const responseData = await response.json()
 
         if (response.ok) {
-          // После успешной регистрации можно сразу авторизовать пользователя
-          return this.login(data.email, data.password)
+          return this.login(data.email, data.password, data.cfToken)
         } else {
           return { success: false, message: responseData.message || 'Ошибка при регистрации' }
         }
@@ -103,10 +158,11 @@ export const useAuthStore = defineStore('auth', {
       this.accessToken = null
       this.refreshToken = null
       this.isAuthenticated = false
+      this.userData = null
     },
 
     // Инициализация состояния из cookies при загрузке приложения
-    initializeAuth() {
+    async initializeAuth() {
       const accessCookie = useCookie('access_token')
       const refreshCookie = useCookie('refresh_token')
 
@@ -114,6 +170,9 @@ export const useAuthStore = defineStore('auth', {
         this.accessToken = accessCookie.value
         this.refreshToken = refreshCookie.value
         this.isAuthenticated = true
+        
+        // Получаем данные пользователя при инициализации
+        await this.fetchUserData()
       }
     }
   }
