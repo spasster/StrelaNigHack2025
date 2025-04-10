@@ -1,32 +1,11 @@
-# Шаг сборки приложения
-FROM node:22-alpine AS builder
+FROM ode:22-alpine
 
-WORKDIR /app
+ENV APP_ROOT /web
 
-# Копируем файлы зависимостей
-COPY package*.json ./
-COPY .npmrc* ./
+WORKDIR ${APP_ROOT}
+ADD . ${APP_ROOT}
 
-# Устанавливаем зависимости
-RUN npm install --frozen-lockfile
+RUN npm ci
 
-# Копируем исходный код
-COPY . .
-
-# Собираем приложение
 RUN npm run build
-
-# Финальный образ с Nginx
-FROM nginx:alpine
-
-# Копируем собранное приложение из builder
-COPY --from=builder /app/.output /usr/share/nginx/html
-
-# Копируем конфигурацию Nginx
-COPY nginx.conf /etc/nginx/conf.d/default.conf
-
-# Открываем порт 80
-EXPOSE 80
-
-# Запускаем Nginx
-CMD ["nginx", "-g", "daemon off;"]
+CMD node .output/server/index.mjs
