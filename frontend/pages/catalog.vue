@@ -5,7 +5,7 @@
     
     <div class="flex flex-col lg:flex-row gap-8">
       <!-- Легенда и управление -->
-      <div class="bg-custom-card p-4 rounded-lg shadow-lg w-full lg:w-64">
+      <div class="bg-custom-card p-4 rounded-lg shadow-lg w-full lg:w-64 overflow-y-auto max-h-[calc(100vh-200px)] touch-manipulation">
         <h2 class="text-lg font-semibold text-white mb-4">Легенда</h2>
         <div class="space-y-2">
           <div class="flex items-center">
@@ -1009,6 +1009,14 @@ const handleResetZoom = () => {
     perspective: 1000;
     transform-style: preserve-3d;
     transition: transform 0.1s ease-out;
+  }
+
+  /* Добавляем стили для прокрутки блока с легендой */
+  .bg-custom-card {
+    touch-action: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    max-height: 80vh;
   }
 }
 </style>
